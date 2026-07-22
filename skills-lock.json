@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "skills": {
+    "ai-engineer": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ai-engineer/SKILL.md",
+      "computedHash": "52fb6090bd4270629dca0c3b5d9dfbc38aa7c928c5fc9892d07fe0359c63130b"
+    },
+    "backend-engineer": {
+      "source": "siviter-xyz/dot-agent",
+      "sourceType": "github",
+      "skillPath": "skills/backend-engineer/SKILL.md",
+      "computedHash": "7fb25764272b305f875e879edf17232a4949930d23ad5223de1f54537fe2cece"
+    },
+    "code-quality": {
+      "source": "miles990/claude-software-skills",
+      "sourceType": "github",
+      "skillPath": "software-engineering/code-quality/SKILL.md",
+      "computedHash": "07fc767bbe21b187bfea3634e2bfdc510fa0d2fd6fb10b22780bb66817cf2a57"
+    },
+    "database-design": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/database-design/SKILL.md",
+      "computedHash": "a1a0b5952537df776e2d8f311e30074561709e7fd0a49a691a45f4ffdf12df22"
+    },
+    "design-system": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "skillPath": "design/skills/design-system/SKILL.md",
+      "computedHash": "12497053dd5456ed6a80e51826d17c584d422584a1d2f653b4038170e4a3348f"
+    },
+    "frontend-engineer": {
+      "source": "siviter-xyz/dot-agent",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-engineer/SKILL.md",
+      "computedHash": "358d04a0397446940d48ff3132c32ed8407b818d3c7a85b1cd130abb62ed66f2"
+    },
+    "hackathon-idea-scoring": {
+      "source": "bernieweb3/hackathon-ai-devkit",
+      "sourceType": "github",
+      "skillPath": "skills/hackathon-idea-scoring/SKILL.md",
+      "computedHash": "410ef5042e4f6d33c3affd1bc757c16fed010577b06209593beed9a9042dcff4"
+    },
+    "product-brainstorming": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "skillPath": "product-management/skills/product-brainstorming/SKILL.md",
+      "computedHash": "595e6cc5bb85da6b67b35c24d4d3906c6bac42a1fe4ecbe71fa154176d724c1b"
+    },
+    "real-time-features": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "skillPath": "skills/real-time-features/SKILL.md",
+      "computedHash": "8269a0097b3d7a907ac95cc6924f73dae6626befc3d267384d374d4bb8a74a74"
+    },
+    "ui-ux-designer": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-ux-designer/SKILL.md",
+      "computedHash": "fdccdfcc9b31cf185402e74d3d94b56709a6d4d2d92a4313d0fbafcca0a6d9a7"
+    }
+  }
+}
