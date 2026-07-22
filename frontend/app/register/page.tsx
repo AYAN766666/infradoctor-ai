@@ -7,7 +7,7 @@ import { Activity, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://infradoctor-backend.vercel.app/";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
