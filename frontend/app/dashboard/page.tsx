@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { 
@@ -303,7 +305,7 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
     setLoading(true);
     const token = localStorage.getItem("token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`https://infradoctor-backend.vercel.app/projects/${projectId}/scan`, { headers })
+    fetch(`${API_BASE}/projects/${projectId}/scan`, { headers })
       .then(res => res.ok ? res.json() : { scan: null })
       .then(data => setScanData(data.scan))
       .catch(() => setScanData(null))
@@ -320,7 +322,7 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
     const token = localStorage.getItem("token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     try {
-      await fetch(`https://infradoctor-backend.vercel.app/projects/${projectId}/scan`, { method: "POST", headers });
+      await fetch(`${API_BASE}/projects/${projectId}/scan`, { method: "POST", headers });
       fetchScan();
     } catch (err) {
       console.error("Scan failed", err);
@@ -527,7 +529,7 @@ function ReviewsView({ theme, userEmail }: { theme: string; userEmail: string })
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch("https://infradoctor-backend.vercel.app/reviews/");
+      const res = await fetch(`${API_BASE}/reviews/`);
       if (res.ok) setReviews(await res.json());
     } catch {}
     setLoading(false);
@@ -540,7 +542,7 @@ function ReviewsView({ theme, userEmail }: { theme: string; userEmail: string })
     setSubmitting(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("https://infradoctor-backend.vercel.app/reviews/", {
+      const res = await fetch(`${API_BASE}/reviews/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ rating, title, comment }),
@@ -696,7 +698,7 @@ function InfrastructureView({ projectId }: { projectId?: number }) {
     if (!projectId) return;
     const token = localStorage.getItem("token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`https://infradoctor-backend.vercel.app/infrastructure/${projectId}`, { headers })
+    fetch(`${API_BASE}/infrastructure/${projectId}`, { headers })
       .then(res => res.ok ? res.json() : [])
       .then(data => setInfrastructure(data))
       .catch(err => {
@@ -752,7 +754,7 @@ function DatabasesView({ projectId }: { projectId?: number }) {
     if (!projectId) return;
     const token = localStorage.getItem("token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`https://infradoctor-backend.vercel.app/databases/${projectId}`, { headers })
+    fetch(`${API_BASE}/databases/${projectId}`, { headers })
       .then(res => res.ok ? res.json() : [])
       .then(data => setDatabases(data))
       .catch(err => {
@@ -808,7 +810,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch("https://infradoctor-backend.vercel.app/settings/", { headers })
+    fetch(`${API_BASE}/settings/`, { headers })
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch settings");
         return res.json();
@@ -838,7 +840,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
     try {
       const token = localStorage.getItem("token");
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch("https://infradoctor-backend.vercel.app/settings/reset", { method: "POST", headers });
+      const res = await fetch(`${API_BASE}/settings/reset`, { method: "POST", headers });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Reset failed");
@@ -862,7 +864,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
     try {
       const token = localStorage.getItem("token");
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`https://infradoctor-backend.vercel.app/projects/${id}`, { method: "DELETE", headers });
+      const res = await fetch(`${API_BASE}/projects/${id}`, { method: "DELETE", headers });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Delete failed");
@@ -1133,13 +1135,13 @@ export default function DashboardPage() {
     setLoading(true);
     setBackendError(null);
     try {
-      const pRes = await fetch(`https://infradoctor-backend.vercel.app/projects/`, { headers: authHeaders() });
+      const pRes = await fetch(`${API_BASE}/projects/`, { headers: authHeaders() });
       if (!pRes.ok) throw new Error(`Backend error: ${pRes.statusText}`);
       const pData = await pRes.json();
       const pList = pData.projects || pData;
       setProjects(pList);
       try {
-        const focusRes = await fetch('https://infradoctor-backend.vercel.app/settings/focus', { headers: authHeaders() });
+        const focusRes = await fetch(`${API_BASE}/settings/focus`, { headers: authHeaders() });
         if (focusRes.ok) {
           const f = await focusRes.json();
           if (f.project_id) setFocusedProjectId(f.project_id);
@@ -1160,7 +1162,7 @@ export default function DashboardPage() {
 
   const fetchMetrics = async () => {
     try {
-      const res = await fetch("https://infradoctor-backend.vercel.app/metrics/", { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/metrics/`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setMetrics(data);
@@ -1172,7 +1174,7 @@ export default function DashboardPage() {
 
   const fetchAlerts = async (projectId: number) => {
     try {
-      const res = await fetch(`https://infradoctor-backend.vercel.app/alerts/${projectId}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/alerts/${projectId}`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setAlerts(data.reverse().slice(0, 10));
@@ -1184,7 +1186,7 @@ export default function DashboardPage() {
 
   const setFocus = async (projectId: number) => {
     try {
-      const res = await fetch('https://infradoctor-backend.vercel.app/settings/focus', {
+      const res = await fetch(`${API_BASE}/settings/focus`, {
         method: 'POST',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId })
@@ -1199,7 +1201,7 @@ export default function DashboardPage() {
 
   const deleteProject = async (id: number) => {
     try {
-      const res = await fetch(`https://infradoctor-backend.vercel.app/projects/${id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/projects/${id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Delete failed");
@@ -1240,7 +1242,7 @@ export default function DashboardPage() {
       };
       
       setScanningProgress("Fetching repository data...");
-      const res = await fetch("https://infradoctor-backend.vercel.app/projects/", {
+      const res = await fetch(`${API_BASE}/projects/`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -1278,7 +1280,7 @@ export default function DashboardPage() {
 
   const viewProjectScan = async (projectId: number) => {
     try {
-      const res = await fetch(`https://infradoctor-backend.vercel.app/projects/${projectId}/scan`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/projects/${projectId}/scan`, { headers: authHeaders() });
       const data = await res.json();
       if (res.ok && data.scan) {
         setScanResult(data.scan);
@@ -1294,7 +1296,7 @@ export default function DashboardPage() {
 
   const triggerScan = async (projectId: number) => {
     try {
-      const res = await fetch(`https://infradoctor-backend.vercel.app/projects/${projectId}/scan`, { method: "POST", headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/projects/${projectId}/scan`, { method: "POST", headers: authHeaders() });
       const data = await res.json();
       if (res.ok) {
         toast.success("Scan completed!");

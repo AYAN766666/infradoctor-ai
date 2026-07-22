@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 import { 
   Activity, 
   Shield, 
@@ -71,7 +73,7 @@ export default function LandingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("https://infradoctor-backend.vercel.app/reviews/")
+    fetch(`${API_BASE}/reviews/`)
       .then(r => r.json())
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => {});

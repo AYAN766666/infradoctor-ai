@@ -27,3 +27,4 @@ fe_err.txt
 fe_out.txt
 
 .vercel
+.env*

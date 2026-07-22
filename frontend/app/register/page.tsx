@@ -7,6 +7,8 @@ import { Activity, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,7 +23,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch("https://infradoctor-backend.vercel.app/auth/register", {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),

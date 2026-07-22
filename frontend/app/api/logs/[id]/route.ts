@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const backendRes = await fetch(`http://localhost:8000/logs/${id}`);
+    const backendRes = await fetch(`${API_BASE}/logs/${id}`);
 
     const contentType = backendRes.headers.get('content-type') || '';
     const status = backendRes.status;

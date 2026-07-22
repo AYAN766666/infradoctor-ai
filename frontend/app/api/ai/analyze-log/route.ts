@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const backendRes = await fetch('https://infradoctor-backend.vercel.app/ai/analyze-log', {
+    const backendRes = await fetch(`${API_BASE}/ai/analyze-log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
