@@ -13,3 +13,4 @@ slowapi==0.1.10
 psycopg2-binary==2.9.12
 email-validator==2.3.0
 websockets==16.1.1
+requests==2.32.3
