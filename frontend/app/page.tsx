@@ -71,7 +71,7 @@ export default function LandingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/reviews/")
+    fetch("https://infradoctor-backend.vercel.app/reviews/")
       .then(r => r.json())
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => {});
