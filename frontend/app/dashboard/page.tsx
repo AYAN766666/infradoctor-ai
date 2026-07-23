@@ -11,7 +11,6 @@ import {
   Activity, 
   LayoutDashboard, 
   Settings, 
-  Users, 
   Bell, 
   Search,
   Plus,
@@ -1018,10 +1017,6 @@ function ReviewsView({ theme, userEmail }: { theme: string; userEmail: string })
       </div>
     </div>
   );
-}
-
-function TeamView() {
-  return <div className="text-white p-8 bg-neutral-900/50 rounded-3xl border border-white/5">Team Module - Feature Coming Soon</div>;
 }
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
