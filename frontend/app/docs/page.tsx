@@ -164,7 +164,7 @@ export default function DocsPage() {
         </div>
       </nav>
 
-      <div className="pt-24 pb-20 max-w-4xl mx-auto px-6">
+      <div className="pt-24 pb-20 max-w-4xl mx-auto px-4 sm:px-6">
         {isUrdu ? <Content t={ur} /> : <Content t={en} />}
       </div>
     </div>
@@ -176,8 +176,8 @@ function Content({ t }: { t: typeof en }) {
     <>
       <div className="mb-12">
         <span className="px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-bold tracking-widest uppercase mb-6 inline-block">{t.badge}</span>
-        <h1 className="text-5xl font-bold tracking-tight mb-3 flex items-center gap-3">
-          <Shield className="text-indigo-500" size={36} />
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3 flex items-center gap-3">
+          <Shield className="text-indigo-500 shrink-0" size={28} />
           InfraDoctor <span className="text-indigo-500">AI</span>
         </h1>
         <p className="text-lg text-neutral-400 italic border-l-4 border-indigo-500/50 pl-4">{t.subtitle}</p>
@@ -258,7 +258,7 @@ function Content({ t }: { t: typeof en }) {
 
 function Section({ icon, title, color, children }: { icon: React.ReactNode; title: string; color: string; children: React.ReactNode }) {
   return (
-    <div className="bg-neutral-900/50 border border-white/5 rounded-2xl p-6 mb-6">
+    <div className="bg-neutral-900/50 border border-white/5 rounded-2xl p-4 sm:p-6 mb-6">
       <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
         <span className={color}>{icon}</span>
         {title}

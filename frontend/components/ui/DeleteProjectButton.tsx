@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 type Props = {
   projectId: number;
-  onDeleted?: () => void; // parent ko refresh karne ke liye
+  onDeleted?: () => void;
 };
 
 export default function DeleteProjectButton({ projectId, onDeleted }: Props) {
@@ -14,15 +15,16 @@ export default function DeleteProjectButton({ projectId, onDeleted }: Props) {
     setLoading(true);
     setMsg(null);
     try {
-      const resp = await fetch(`/api/projects/${projectId}`, {
+      const token = localStorage.getItem("token");
+      const resp = await apiFetch(`/projects/${projectId}`, {
         method: "DELETE",
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Delete failed");
-      setMsg("✅ Project deleted.");
+      setMsg("Project deleted successfully");
       onDeleted?.();
     } catch (e: any) {
-      setMsg(`❌ ${e.message}`);
+      setMsg(`Delete failed: ${e.message}`);
     } finally {
       setLoading(false);
       setShowConfirm(false);
@@ -32,43 +34,45 @@ export default function DeleteProjectButton({ projectId, onDeleted }: Props) {
   return (
     <>
       <button
-        className="rounded bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-sm"
+        className="rounded bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-sm disabled:opacity-50"
         onClick={() => setShowConfirm(true)}
         disabled={loading}
       >
-        {loading ? "Deleting…" : "Delete Project"}
+        {loading ? "Deleting..." : "Delete Project"}
       </button>
 
-      {/* Confirmation Dialog */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-gray-800 p-5 rounded shadow-lg max-w-sm w-full text-white">
-            <h2 className="text-lg font-semibold mb-3">Confirm Delete</h2>
-            <p className="mb-4">
-              Kya aap yaqeenan is project ko permanently delete karna chahte hain?
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full text-white">
+            <h2 className="text-lg font-bold mb-3">Confirm Delete</h2>
+            <p className="text-neutral-400 mb-6 text-sm">
+              Are you sure you want to permanently delete this project? This action cannot be undone.
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3">
               <button
-                className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
+                className="px-4 py-2 bg-neutral-800 rounded-xl text-sm hover:bg-neutral-700 transition-colors"
                 onClick={() => setShowConfirm(false)}
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="px-3 py-1 bg-red-600 rounded hover:bg-red-500"
+                className="px-4 py-2 bg-red-600 rounded-xl text-sm font-bold hover:bg-red-500 transition-colors disabled:opacity-50"
                 onClick={deleteProject}
                 disabled={loading}
               >
-                Yes, Delete
+                {loading ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Result message */}
-      {msg && <p className="mt-2 text-sm">{msg}</p>}
+      {msg && (
+        <div className={`mt-2 text-sm ${msg.includes("failed") ? "text-red-400" : "text-emerald-400"}`}>
+          {msg}
+        </div>
+      )}
     </>
   );
 }

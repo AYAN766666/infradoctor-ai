@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { Activity, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://infradoctor-backend.vercel.app";
+import { apiFetch } from "@/lib/api";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -23,9 +22,8 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const res = await apiFetch("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
 
@@ -63,7 +61,7 @@ export default function RegisterPage() {
           <p className="text-neutral-500 mt-2">Start monitoring your infrastructure for free.</p>
         </div>
 
-        <div className="bg-neutral-900/50 border border-white/5 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+        <div className="bg-neutral-900/50 border border-white/5 p-4 sm:p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
           <form onSubmit={handleRegister} className="space-y-5">
             {error && (
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">

@@ -1,0 +1,19 @@
+{
+  "name": "infradoctor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InfraDoctor - AI-powered infrastructure monitoring",
+  "scripts": {
+    "dev": "docker compose up",
+    "dev:backend": "cd backend && python start.py",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "deploy:backend": "cd backend && vercel --prod",
+    "deploy:frontend": "cd frontend && vercel --prod",
+    "deploy:all": "npm run deploy:backend && npm run deploy:frontend",
+    "deploy": "powershell -File scripts/deploy.ps1",
+    "setup": "powershell -File scripts/setup.ps1",
+    "lint": "cd frontend && npm run lint",
+    "status": "vercel list"
+  }
+}

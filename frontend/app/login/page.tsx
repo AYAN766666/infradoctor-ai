@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { Activity, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://infradoctor-backend.vercel.app";
+import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -22,9 +21,8 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await apiFetch("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -67,7 +65,7 @@ export default function LoginPage() {
           <p className="text-neutral-500 mt-2">Enter your credentials to access your dashboard.</p>
         </div>
 
-        <div className="bg-neutral-900/50 border border-white/5 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+        <div className="bg-neutral-900/50 border border-white/5 p-4 sm:p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
