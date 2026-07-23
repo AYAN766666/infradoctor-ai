@@ -113,22 +113,24 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
-          <h3 className={cn("text-4xl font-bold", displayColor === "green" ? "text-green-500" : "text-red-500")}>{displayScore}</h3>
-          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Security Score</p>
-        </div>
-        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
-          <h3 className={cn("text-4xl font-bold", theme === "light" ? "text-slate-900" : "text-white")}>{activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0)}</h3>
-          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Files Scanned</p>
-        </div>
-        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
-          <h3 className={cn("text-4xl font-bold", totalIssues > 0 ? "text-red-500" : "text-green-500")}>{totalIssues}</h3>
-          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Issues Found</p>
-        </div>
-        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
-          <h3 className={cn("text-2xl font-bold", theme === "light" ? "text-slate-900" : "text-white")}>{aggSize}</h3>
-          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Storage</p>
-        </div>
+        {[
+          { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : "text-red-500", size: "text-4xl" },
+          { value: activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0), label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
+          { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+          { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            className={cn("p-6 rounded-3xl border transition-shadow", theme === "light" ? "bg-white border-slate-200 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
+          >
+            <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
+            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
 
       <motion.div
@@ -313,7 +315,12 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
         <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
           {filesWithIssues.length > 0 ? (
             filesWithIssues.map((file: any, i: number) => (
-              <div key={i} className={cn("p-6 transition-colors", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}>
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                className={cn("p-6 transition-colors", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
                     <AlertTriangle size={20} />
@@ -364,7 +371,7 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ))
           ) : (
             <div className="p-12 text-center text-neutral-500 text-sm">
@@ -1484,26 +1491,25 @@ export default function DashboardPage() {
 
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Security Score</p>
-                  <p className={cn("text-2xl font-bold", scanResult.secure ? "text-green-500" : "text-red-500")}>{scanResult.score}%</p>
-                  <p className={cn("text-xs mt-1", scanResult.secure ? "text-green-500" : "text-red-500")}>{scanResult.secure ? "Secure" : "Issues Found"}</p>
-                </div>
-                <div className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Files</p>
-                  <p className={cn("text-2xl font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{scanResult.total_files}</p>
-                  <p className="text-xs text-neutral-500 mt-1">Total files scanned</p>
-                </div>
-                <div className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Issues</p>
-                  <p className={cn("text-2xl font-bold", scanResult.issues_found > 0 ? "text-red-500" : "text-green-500")}>{scanResult.issues_found}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{scanResult.sensitive_files_count || 0} sensitive files</p>
-                </div>
-                <div className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">Storage</p>
-                  <p className={cn("text-2xl font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{scanResult.total_size_hr || "0 B"}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{scanResult.large_files_count || 0} large files</p>
-                </div>
+                {[
+                  { label: "Security Score", value: `${scanResult.score}%`, sub: scanResult.secure ? "Secure" : "Issues Found", color: scanResult.secure ? "text-green-500" : "text-red-500" },
+                  { label: "Files", value: scanResult.total_files, sub: "Total files scanned", color: theme === "light" ? "text-slate-800" : "text-white" },
+                  { label: "Issues", value: scanResult.issues_found, sub: `${scanResult.sensitive_files_count || 0} sensitive files`, color: scanResult.issues_found > 0 ? "text-red-500" : "text-green-500" },
+                  { label: "Storage", value: scanResult.total_size_hr || "0 B", sub: `${scanResult.large_files_count || 0} large files`, color: theme === "light" ? "text-slate-800" : "text-white" },
+                ].map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: i * 0.08 }}
+                    whileHover={{ scale: 1.03 }}
+                    className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">{stat.label}</p>
+                    <p className={cn("text-2xl font-bold", stat.color)}>{stat.value}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{stat.sub}</p>
+                  </motion.div>
+                ))}
               </div>
 
               {/* Files with Issues */}
