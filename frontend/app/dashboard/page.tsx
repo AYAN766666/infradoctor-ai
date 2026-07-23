@@ -581,7 +581,6 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider mb-2">Security Score</p>
           <h3 className={cn("text-4xl font-bold", scanData?.score >= 80 ? "text-green-500" : "text-red-500")}>{scanData?.score ?? 0}%</h3>
           {scores.length > 1 && (
             <div className="mt-2">
@@ -590,15 +589,12 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
           )}
         </div>
         <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider mb-2">Files Scanned</p>
           <h3 className="text-4xl font-bold text-white">{scanData?.total_files ?? 0}</h3>
         </div>
         <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider mb-2">Issues Found</p>
           <h3 className={cn("text-4xl font-bold", totalIssues > 0 ? "text-red-500" : "text-green-500")}>{totalIssues}</h3>
         </div>
         <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider mb-2">Storage</p>
           <h3 className="text-2xl font-bold text-white">{scanData?.total_size_hr || "0 B"}</h3>
         </div>
       </div>

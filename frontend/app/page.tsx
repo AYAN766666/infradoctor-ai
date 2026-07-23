@@ -17,7 +17,9 @@ import {
   MessageCircle,
   Quote,
   Menu,
-  X
+  X,
+  Sun,
+  Moon
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,7 @@ function PriceCard({ tier, price, description, features, featured = false }: { t
 export default function LandingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     fetch(`${API_BASE}/reviews/`)
@@ -90,9 +93,9 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-950 text-white selection:bg-indigo-500/30">
+    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${darkMode ? "bg-neutral-950 text-white" : "bg-white text-slate-900"}`}>
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-neutral-950/80 backdrop-blur-md">
+      <nav className={`fixed top-0 w-full z-50 border-b transition-colors duration-300 ${darkMode ? "border-white/5 bg-neutral-950/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform">
@@ -101,39 +104,45 @@ export default function LandingPage() {
             <span className="text-xl font-bold tracking-tight">InfraDoctor<span className="text-indigo-500">AI</span></span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
+          <div className={`hidden md:flex items-center gap-8 text-sm font-medium transition-colors duration-300 ${darkMode ? "text-neutral-400" : "text-slate-500"}`}>
             {navItems.map((item) =>
               item.isLink ? (
-                <Link key={item.label} href={item.href} className="hover:text-white transition-colors">{item.label}</Link>
+                <Link key={item.label} href={item.href} className={`transition-colors ${darkMode ? "hover:text-white" : "hover:text-slate-900"}`}>{item.label}</Link>
               ) : (
-                <a key={item.label} href={item.href} className="hover:text-white transition-colors">{item.label}</a>
+                <a key={item.label} href={item.href} className={`transition-colors ${darkMode ? "hover:text-white" : "hover:text-slate-900"}`}>{item.label}</a>
               )
             )}
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">Sign in</Link>
+            <Link href="/login" className={`text-sm font-medium transition-colors ${darkMode ? "hover:text-white" : "hover:text-slate-900"}`}>Sign in</Link>
             <Link href="/register" className="px-4 py-2 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]">Get Started</Link>
+            <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-xl border transition-all ${darkMode ? "border-white/10 text-neutral-400 hover:text-white hover:border-white/20" : "border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-300"}`} title="Toggle theme">
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
           </div>
 
           <div className="flex md:hidden items-center gap-2">
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-neutral-400 hover:text-white transition-colors">
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-neutral-400 hover:text-white transition-colors" aria-label="Menu">
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
 
         {mobileOpen && (
-          <div className="md:hidden border-t border-white/5 bg-neutral-950/95 backdrop-blur-md">
+          <div className={`md:hidden border-t transition-colors duration-300 ${darkMode ? "border-white/5 bg-neutral-950/95 backdrop-blur-md" : "border-slate-200 bg-white/95 backdrop-blur-md"}`}>
             <div className="px-4 sm:px-6 py-4 space-y-3">
               {navItems.map((item) =>
                 item.isLink ? (
-                  <Link key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">{item.label}</Link>
+                  <Link key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${darkMode ? "text-neutral-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}>{item.label}</Link>
                 ) : (
-                  <a key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">{item.label}</a>
+                  <a key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${darkMode ? "text-neutral-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}>{item.label}</a>
                 )
               )}
-              <hr className="border-white/5" />
-              <Link href="/login" onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">Sign in</Link>
+              <hr className={darkMode ? "border-white/5" : "border-slate-200"} />
+              <Link href="/login" onClick={() => setMobileOpen(false)} className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${darkMode ? "text-neutral-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"}`}>Sign in</Link>
               <Link href="/register" onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-bold text-center bg-white text-black hover:bg-neutral-200 transition-colors">Get Started</Link>
             </div>
           </div>
@@ -222,11 +231,11 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 bg-neutral-950 border-t border-white/5">
+      <section id="features" className={`py-24 transition-colors duration-300 ${darkMode ? "bg-neutral-950 border-t border-white/5" : "bg-slate-50 border-t border-slate-200"}`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Everything you need to scale.</h2>
-            <p className="text-neutral-400">Advanced tools for modern engineering teams.</p>
+            <p className={darkMode ? "text-neutral-400" : "text-slate-500"}>Advanced tools for modern engineering teams.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
