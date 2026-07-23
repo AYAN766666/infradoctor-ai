@@ -547,19 +547,6 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
           <p className="text-neutral-500 text-sm mt-1">Scanned files and security issues from your repository.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={createFixPR} disabled={creatingPR} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 rounded-xl font-bold text-xs hover:bg-emerald-500 transition-all disabled:opacity-50">
-            {creatingPR ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitPullRequest size={14} />}
-            {creatingPR ? "Creating..." : "Auto-Fix PR"}
-          </button>
-          <button onClick={fetchDrift} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 rounded-xl font-bold text-xs hover:bg-blue-500 transition-all">
-            <TrendingUp size={14} /> Drift
-          </button>
-          <button onClick={() => setShowCompliance(true)} className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 rounded-xl font-bold text-xs hover:bg-purple-500 transition-all">
-            <FileText size={14} /> Compliance
-          </button>
-          <button onClick={() => setShowComments(true)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-600 rounded-xl font-bold text-xs hover:bg-amber-500 transition-all">
-            <MessageSquare size={14} /> Comments ({comments.length})
-          </button>
           <button onClick={triggerScan} disabled={scanning} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-500 transition-all disabled:opacity-50">
             {scanning ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck size={14} />}
             {scanning ? "Scanning..." : "Rescan"}

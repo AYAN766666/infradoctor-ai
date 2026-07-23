@@ -27,12 +27,12 @@ import { useState, useEffect } from "react";
 
 // ... existing LandingPage export ...
 
-function StepCard({ number, title, description }: { number: string, title: string, description: string }) {
+function StepCard({ number, title, description, darkMode }: { number: string, title: string, description: string, darkMode: boolean }) {
   return (
-    <div className="relative z-10 p-8 rounded-3xl bg-neutral-900/50 border border-white/5 hover:border-indigo-500/30 transition-colors group">
-      <div className="text-4xl font-black text-white/5 mb-4 group-hover:text-indigo-500/20 transition-colors">{number}</div>
-      <h3 className="text-xl font-bold mb-3 tracking-tight">{title}</h3>
-      <p className="text-neutral-400 text-sm leading-relaxed">{description}</p>
+    <div className={`relative z-10 p-8 rounded-3xl transition-colors group ${darkMode ? "bg-neutral-900/50 border border-white/5 hover:border-indigo-500/30" : "bg-white border border-slate-200 hover:border-indigo-500/30 shadow-sm"}`}>
+      <div className={`text-4xl font-black mb-4 group-hover:text-indigo-500/20 transition-colors ${darkMode ? "text-white/5" : "text-slate-200"}`}>{number}</div>
+      <h3 className={`text-xl font-bold mb-3 tracking-tight ${darkMode ? "" : "text-slate-900"}`}>{title}</h3>
+      <p className={`text-sm leading-relaxed ${darkMode ? "text-neutral-400" : "text-slate-500"}`}>{description}</p>
     </div>
   );
 }
@@ -165,11 +165,11 @@ export default function LandingPage() {
             <span className="px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-bold tracking-widest uppercase mb-6 inline-block">
               Next-Gen Infrastructure Monitoring
             </span>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-500">
+            <h1 className={`text-5xl md:text-7xl font-bold tracking-tight mb-8 ${darkMode ? "bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-500" : "text-slate-900"}`}>
               Your Infrastructure, <br />
               Healed by Intelligence.
             </h1>
-            <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+            <p className={`text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed ${darkMode ? "text-neutral-400" : "text-slate-600"}`}>
               InfraDoctor AI predicts incidents before they happen, automates root cause analysis, and heals your cloud infrastructure with advanced AI agents.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -180,7 +180,7 @@ export default function LandingPage() {
                 Start Free Trial
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <button className="w-full sm:w-auto px-8 py-4 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all">
+              <button className={`w-full sm:w-auto px-8 py-4 rounded-2xl font-bold transition-all ${darkMode ? "bg-white/5 border border-white/10 hover:bg-white/10" : "bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200"}`}>
                 Book a Demo
               </button>
             </div>
@@ -193,8 +193,8 @@ export default function LandingPage() {
             transition={{ delay: 0.3, duration: 0.8 }}
             className="mt-20 relative mx-auto max-w-5xl"
           >
-            <div className="rounded-2xl border border-white/10 bg-neutral-900 shadow-2xl overflow-hidden aspect-video relative group">
-              <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent opacity-60" />
+            <div className={`rounded-2xl border shadow-2xl overflow-hidden aspect-video relative group ${darkMode ? "border-white/10 bg-neutral-900" : "border-slate-200 bg-slate-100"}`}>
+              <div className={`absolute inset-0 ${darkMode ? "bg-gradient-to-t from-neutral-950 via-transparent to-transparent opacity-60" : "hidden"}`} />
               
               {/* Mock Dashboard Content */}
               <div className="p-8 h-full flex flex-col gap-6">
@@ -239,32 +239,32 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <FeatureCard 
+            <FeatureCard darkMode={darkMode}
               icon={<Shield className="w-6 h-6 text-indigo-400" />}
               title="Security First"
               description="Zero-trust architecture with automated vulnerability scanning and threat detection."
             />
-            <FeatureCard 
+            <FeatureCard darkMode={darkMode}
               icon={<Zap className="w-6 h-6 text-yellow-400" />}
               title="Real-time Alerts"
               description="Sub-second latency in monitoring and incident triggering across your entire stack."
             />
-            <FeatureCard 
+            <FeatureCard darkMode={darkMode}
               icon={<BarChart3 className="w-6 h-6 text-green-400" />}
               title="Predictive Analytics"
               description="Our AI models predict potential failures up to 2 hours before they impact users."
             />
-            <FeatureCard 
+            <FeatureCard darkMode={darkMode}
               icon={<Terminal className="w-6 h-6 text-neutral-400" />}
               title="Automated Remediation"
               description="Self-healing infrastructure that applies patches and scales resources automatically."
             />
-            <FeatureCard 
+            <FeatureCard darkMode={darkMode}
               icon={<Cpu className="w-6 h-6 text-purple-400" />}
               title="Kubernetes Native"
               description="Deep integration with K8s clusters for granular pod and node-level visibility."
             />
-            <FeatureCard 
+            <FeatureCard darkMode={darkMode}
               icon={<Globe className="w-6 h-6 text-blue-400" />}
               title="Global Observability"
               description="Monitor multi-cloud and hybrid environments from a single unified control plane."
@@ -274,27 +274,27 @@ export default function LandingPage() {
       </section>
 
       {/* How it Works Section */}
-      <section id="how-it-works" className="py-24 bg-neutral-950 border-t border-white/5 relative overflow-hidden">
+      <section id="how-it-works" className={`py-24 relative overflow-hidden transition-colors duration-300 ${darkMode ? "bg-neutral-950 border-t border-white/5" : "bg-white border-t border-slate-200"}`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Three steps to health.</h2>
-            <p className="text-neutral-400">Our AI agents work around the clock so you don&apos;t have to.</p>
+            <p className={darkMode ? "text-neutral-400" : "text-slate-500"}>Our AI agents work around the clock so you don&apos;t have to.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
             <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent hidden md:block -translate-y-1/2" />
             
-            <StepCard 
+            <StepCard darkMode={darkMode}
               number="01"
               title="Connect Sources"
               description="Connect your AWS, GCP, Azure, or Kubernetes clusters in minutes via our secure agent."
             />
-            <StepCard 
+            <StepCard darkMode={darkMode}
               number="02"
               title="AI Discovery"
               description="Our models map your infrastructure and establish baseline performance metrics automatically."
             />
-            <StepCard 
+            <StepCard darkMode={darkMode}
               number="03"
               title="Auto-Healing"
               description="Sit back as InfraDoctor predicts, alerts, and resolves incidents in real-time."
@@ -304,9 +304,9 @@ export default function LandingPage() {
       </section>
 
       {/* Reviews Section */}
-      <section id="reviews" className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-indigo-950/10 to-neutral-950" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full" />
+      <section id="reviews" className={`py-24 relative overflow-hidden transition-colors duration-300 ${darkMode ? "" : "bg-slate-50"}`}>
+        {darkMode && <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-indigo-950/10 to-neutral-950" />}
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full ${darkMode ? "bg-indigo-500/5 blur-[120px]" : "hidden"}`} />
         <div className="max-w-7xl mx-auto px-6 relative">
           <div className="text-center mb-16">
             <span className="px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-bold tracking-widest uppercase mb-6 inline-block">
@@ -326,14 +326,14 @@ export default function LandingPage() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.12, duration: 0.6 }}
-                    className="w-full max-w-sm bg-neutral-900/80 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-indigo-500/40 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/5"
+                    className={`w-full max-w-sm rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-lg ${darkMode ? "bg-neutral-900/80 backdrop-blur-sm border border-white/10 hover:border-indigo-500/40 hover:shadow-indigo-500/5" : "bg-white border border-slate-200 hover:border-indigo-500/40 shadow-sm"}`}
                   >
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c} flex items-center justify-center text-sm font-bold text-white shadow-lg`}>
                         {review.user_name?.charAt(0)?.toUpperCase() || "U"}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">{review.user_name || "Anonymous"}</p>
+                        <p className={`text-sm font-bold ${darkMode ? "text-white" : "text-slate-800"}`}>{review.user_name || "Anonymous"}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           {[1,2,3,4,5].map(s => (
                             <Star key={s} size={12} className={s <= review.rating ? "text-amber-400 fill-amber-400" : "text-neutral-600"} />
@@ -341,8 +341,8 @@ export default function LandingPage() {
                         </div>
                       </div>
                     </div>
-                    <p className="text-sm text-neutral-400 leading-relaxed">&ldquo;{review.comment}&rdquo;</p>
-                    <p className="text-xs text-neutral-600 mt-3 italic">— {review.title || "Verified User"}</p>
+                    <p className={`text-sm leading-relaxed ${darkMode ? "text-neutral-400" : "text-slate-500"}`}>&ldquo;{review.comment}&rdquo;</p>
+                    <p className={`text-xs mt-3 italic ${darkMode ? "text-neutral-600" : "text-slate-400"}`}>— {review.title || "Verified User"}</p>
                   </motion.div>
                 );
               })}
@@ -366,7 +366,7 @@ export default function LandingPage() {
             </div>
           )}
           <div className="text-center mt-12">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-sm hover:bg-white/10 transition-all">
+            <Link href="/dashboard" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${darkMode ? "bg-white/5 border border-white/10 hover:bg-white/10" : "bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200"}`}>
               <MessageCircle size={16} />
               Share your review
             </Link>
@@ -375,17 +375,17 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-white/5 py-12 bg-neutral-950">
+      <footer className={`mt-auto border-t py-12 transition-colors duration-300 ${darkMode ? "border-white/5 bg-neutral-950" : "border-slate-200 bg-white"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-2">
             <Activity className="w-6 h-6 text-indigo-600" />
             <span className="text-lg font-bold tracking-tight">InfraDoctor<span className="text-indigo-500">AI</span></span>
           </div>
-          <div className="text-neutral-500 text-sm text-center md:text-left">
+          <div className={`text-sm text-center md:text-left ${darkMode ? "text-neutral-500" : "text-slate-400"}`}>
             © 2026 InfraDoctor AI Inc. Built for the modern cloud.
           </div>
-          <div className="flex gap-6 text-neutral-400">
-            <a href="https://github.com/AYAN766666/infradoctor-ai" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5">
+          <div className={`flex gap-6 ${darkMode ? "text-neutral-400" : "text-slate-400"}`}>
+            <a href="https://github.com/AYAN766666/infradoctor-ai" target="_blank" rel="noopener noreferrer" className={`transition-colors flex items-center gap-1.5 ${darkMode ? "hover:text-white" : "hover:text-slate-700"}`}>
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
               GitHub
             </a>
@@ -396,14 +396,14 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+function FeatureCard({ icon, title, description, darkMode }: { icon: React.ReactNode, title: string, description: string, darkMode: boolean }) {
   return (
-    <div className="group p-8 rounded-3xl border border-white/5 bg-neutral-900/50 hover:bg-neutral-900 transition-all hover:-translate-y-1">
-      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+    <div className={`group p-8 rounded-3xl transition-all hover:-translate-y-1 ${darkMode ? "border border-white/5 bg-neutral-900/50 hover:bg-neutral-900" : "border border-slate-200 bg-white hover:bg-slate-50 shadow-sm"}`}>
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${darkMode ? "bg-white/5" : "bg-slate-100"}`}>
         {icon}
       </div>
-      <h3 className="text-xl font-bold mb-3 tracking-tight">{title}</h3>
-      <p className="text-neutral-400 leading-relaxed text-sm">
+      <h3 className={`text-xl font-bold mb-3 tracking-tight ${darkMode ? "" : "text-slate-900"}`}>{title}</h3>
+      <p className={`leading-relaxed text-sm ${darkMode ? "text-neutral-400" : "text-slate-500"}`}>
         {description}
       </p>
     </div>
