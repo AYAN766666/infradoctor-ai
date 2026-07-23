@@ -15,7 +15,9 @@ import {
   CheckCircle2,
   Star,
   MessageCircle,
-  Quote
+  Quote,
+  Menu,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -71,6 +73,7 @@ function PriceCard({ tier, price, description, features, featured = false }: { t
 
 export default function LandingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/reviews/`)
@@ -79,35 +82,61 @@ export default function LandingPage() {
       .catch(() => {});
   }, []);
 
+  const navItems = [
+    { label: "Features", href: "#features" },
+    { label: "How it works", href: "#how-it-works" },
+    { label: "Reviews", href: "#reviews" },
+    { label: "Docs", href: "/docs", isLink: true },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-neutral-950 text-white selection:bg-indigo-500/30">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-neutral-950/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 group cursor-pointer">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform">
               <Activity className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">InfraDoctor<span className="text-indigo-500">AI</span></span>
-          </div>
+          </Link>
+
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
-            <a href="#reviews" className="hover:text-white transition-colors">Reviews</a>
-            <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
+            {navItems.map((item) =>
+              item.isLink ? (
+                <Link key={item.label} href={item.href} className="hover:text-white transition-colors">{item.label}</Link>
+              ) : (
+                <a key={item.label} href={item.href} className="hover:text-white transition-colors">{item.label}</a>
+              )
+            )}
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">
-              Sign in
-            </Link>
-            <Link 
-              href="/register" 
-              className="px-4 py-2 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-            >
-              Get Started
-            </Link>
+
+          <div className="hidden md:flex items-center gap-4">
+            <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">Sign in</Link>
+            <Link href="/register" className="px-4 py-2 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]">Get Started</Link>
           </div>
+
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 text-neutral-400 hover:text-white transition-colors" aria-label="Menu">
+            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
+
+        {mobileOpen && (
+          <div className="md:hidden border-t border-white/5 bg-neutral-950/95 backdrop-blur-md">
+            <div className="px-4 sm:px-6 py-4 space-y-3">
+              {navItems.map((item) =>
+                item.isLink ? (
+                  <Link key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">{item.label}</Link>
+                ) : (
+                  <a key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">{item.label}</a>
+                )
+              )}
+              <hr className="border-white/5" />
+              <Link href="/login" onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">Sign in</Link>
+              <Link href="/register" onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-bold text-center bg-white text-black hover:bg-neutral-200 transition-colors">Get Started</Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
