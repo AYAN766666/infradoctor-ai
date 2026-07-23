@@ -40,7 +40,6 @@ import {
   Menu,
   ChevronDown,
   MessageSquare,
-  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -1309,10 +1308,6 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
   const [settings, setSettings] = useState({ notifications: true, theme: theme, language: "en", apiKey: "********-****-****-****-************" });
   const [resetLoading, setResetLoading] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState("");
-  const [webhookType, setWebhookType] = useState("slack");
-  const [webhookMsg, setWebhookMsg] = useState("");
-
   useEffect(() => {
     const token = localStorage.getItem("token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -1327,8 +1322,6 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
         }
       })
       .catch(err => console.error("Error loading settings", err));
-    fetch(`${API_BASE}/settings/webhook`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })
-      .then(r => r.ok ? r.json() : null).then(d => { if (d) { setWebhookUrl(d.url || ""); setWebhookType(d.type || "slack"); } }).catch(() => {});
   }, [theme]);
 
   const updateSetting = (key: string, value: any) => {
@@ -1336,20 +1329,6 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
     if (key === "theme") {
       setTheme(value);
     }
-  };
-
-  const saveWebhook = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/settings/webhook`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
-        body: JSON.stringify({ url: webhookUrl, type: webhookType }),
-      });
-      const data = await res.json();
-      if (res.ok) { setWebhookMsg("Webhook saved!"); toast.success("Webhook updated"); }
-      else { setWebhookMsg(data.detail || "Failed"); toast.error(data.detail || "Failed"); }
-    } catch { setWebhookMsg("Network error"); }
-    setTimeout(() => setWebhookMsg(""), 3000);
   };
 
   const handleReset = async () => {
@@ -1495,29 +1474,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
         </div>
       </div>
 
-      {/* Webhook Notifications */}
-      <div className={cn("border rounded-3xl p-8 transition-colors duration-300", theme === "light" ? "bg-white border-slate-200 shadow-sm" : "bg-neutral-900/50 border-white/5")}>
-        <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
-          <Share2 size={20} className="text-indigo-500" /> Slack / Discord Alerts
-        </h2>
-        <div className="space-y-4">
-          <div className={cn("flex items-center justify-between p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}>
-            <div>
-              <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>Webhook URL</p>
-              <p className="text-xs text-neutral-500">Paste your Slack or Discord webhook URL for real-time alerts.</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} placeholder="https://hooks.slack.com/services/..." className={cn("flex-1 px-4 py-3 rounded-xl border text-sm outline-none", theme === "light" ? "bg-slate-50 border-slate-200 text-slate-800" : "bg-white/5 border-white/10 text-white placeholder:text-neutral-600")} />
-            <select value={webhookType} onChange={e => setWebhookType(e.target.value)} className={cn("px-3 py-3 rounded-xl border text-sm outline-none", theme === "light" ? "bg-slate-50 border-slate-200 text-slate-800" : "bg-white/5 border-white/10 text-white")}>
-              <option value="slack">Slack</option>
-              <option value="discord">Discord</option>
-            </select>
-            <button onClick={saveWebhook} className="px-5 py-3 bg-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-500 transition-all">Save</button>
-          </div>
-          {webhookMsg && <p className="text-xs text-green-500">{webhookMsg}</p>}
-        </div>
-      </div>
+
 
       <div className={cn(
         "border rounded-3xl p-8 transition-colors duration-300",
