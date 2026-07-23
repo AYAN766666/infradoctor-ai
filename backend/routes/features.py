@@ -17,7 +17,6 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # ─── AI Chat ────────────────────────────────────────────────────────────────
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 @router.post("/ai/chat")
 @limiter.limit("20/minute")
@@ -46,20 +45,6 @@ Project Context:
 {context}
 
 Keep answers concise, actionable, and focused on infrastructure security. If asked about fixing issues, provide specific steps referencing the scan data. Max 3 paragraphs."""
-
-    if model == "claude" and ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
-        try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
-            resp = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
-                system=system_prompt,
-                messages=[{"role": "user", "content": message}],
-            )
-            return {"reply": resp.content[0].text}
-        except Exception as e:
-            return {"reply": f"Claude AI temporarily unavailable: {str(e)[:100]}. Please try again later.", "error": str(e)[:200]}
 
     if GROQ_API_KEY and len(GROQ_API_KEY) > 10:
         try:
