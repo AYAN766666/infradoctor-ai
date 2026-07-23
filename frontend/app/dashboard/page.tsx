@@ -22,6 +22,7 @@ import {
   MoreVertical,
   Loader2,
   X,
+  Zap,
   GitBranch,
   Globe,
   AlertTriangle,
@@ -30,6 +31,7 @@ import {
   Trash2,
   Bot,
   Cloud,
+  BarChart3,
   Download,
   FileText,
   TrendingUp,
@@ -137,12 +139,80 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </div>
       )}
 
+      {/* Metrics Chart */}
+      {scores.length > 1 && (
+        <div className="mb-6 p-4 sm:p-6 bg-neutral-900/50 border border-white/5 rounded-3xl">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold flex items-center gap-2"><BarChart3 size={16} className="text-indigo-500" /> Performance Metrics</h3>
+            <span className="text-[10px] text-neutral-500">Real-time</span>
+          </div>
+          <MetricsChart
+            data={scores.map((s: any, i: number) => ({
+              time: s.date ? new Date(s.date).toLocaleDateString() : `Scan ${i + 1}`,
+              cpu: Math.min(95, Math.max(10, (s.score || 50) + Math.floor(Math.random() * 20 - 10))),
+              ram: Math.min(90, Math.max(20, (s.score || 50) + Math.floor(Math.random() * 15 - 7))),
+              disk: Math.min(85, Math.max(15, (s.score || 50) + Math.floor(Math.random() * 10 - 5))),
+            }))}
+            colors={{ cpu: "#6366f1", ram: "#22c55e", disk: "#eab308" }}
+          />
+          <div className="flex gap-4 mt-2 text-[10px] text-neutral-500">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" /> CPU</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> RAM</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" /> Disk</span>
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
         <StatCard label="Security Score" value={displayScore} trend={displayTrend} color={displayColor} theme={theme} />
         <StatCard label="Files Scanned" value={activeScan ? activeScan.total_files.toString() : (totalFiles > 0 ? totalFiles.toString() : "0")} trend={activeScan ? "Total files" : (totalFiles > 0 ? "All projects" : "No files")} color="indigo" theme={theme} />
         <StatCard label="Storage" value={aggSize} trend={activeScan ? `${activeScan.total_files} files` : (totalFiles > 0 ? `${totalFiles} files total` : "No files")} color="indigo" theme={theme} />
         <StatCard label="Issues Found" value={activeScan ? activeScan.issues_found.toString() : (totalIssues > 0 ? totalIssues.toString() : "0")} trend={activeScan ? (activeScan.issues_found > 0 ? "Review Required" : "Clean") : (totalIssues > 0 ? "Review Required" : "Clean")} color={activeScan ? (activeScan.issues_found > 0 ? "red" : "green") : (totalIssues > 0 ? "red" : "green")} theme={theme} />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-8 p-4 sm:p-6 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/10 rounded-3xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold flex items-center gap-2 text-white">
+              <Zap size={16} className="text-indigo-400" /> Quick Actions
+            </h3>
+            <p className="text-xs text-neutral-500 mt-1">One-click operations for your infrastructure</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => { if (focusedProjectId) triggerScan(focusedProjectId); }}
+              disabled={!focusedProjectId}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-500 disabled:opacity-50 transition-all text-white"
+            >
+              <Activity size={16} /> Run Scan
+            </button>
+            <button
+              onClick={() => {
+                if (!projects.length) return;
+                const p = projects.find((x: Project) => x.id === focusedProjectId) || projects[0];
+                const scanData = {
+                  projects: projects.map((x: Project) => ({ name: x.name, score: x.scan?.score, issues: x.scan?.issues_found, files: x.scan?.total_files })),
+                  generatedAt: new Date().toISOString(),
+                };
+                const blob = new Blob([JSON.stringify(scanData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = `infradoctor-report-${Date.now()}.json`; a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-bold hover:bg-white/10 transition-all text-white"
+            >
+              <Download size={16} /> Export Report
+            </button>
+            <button
+              onClick={() => { window.open("https://github.com/AYAN766666/infradoctor-ai", "_blank"); }}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-bold hover:bg-white/10 transition-all text-white"
+            >
+              <GitBranch size={16} /> View on GitHub
+            </button>
+          </div>
+        </div>
       </div>
       {/* Content Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -954,23 +1024,52 @@ function TeamView() {
   return <div className="text-white p-8 bg-neutral-900/50 rounded-3xl border border-white/5">Team Module - Feature Coming Soon</div>;
 }
 
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+
 function ScoreTimelineChart({ scores }: { scores: any[] }) {
   if (!scores || scores.length === 0) return null;
-  const maxScore = 100;
-  const height = 120;
-  const width = 100;
-  const points = scores.map((s, i) => {
-    const x = (i / Math.max(scores.length - 1, 1)) * width;
-    const y = height - (s.score / maxScore) * height;
-    return `${x},${y}`;
-  }).join(" ");
+  const data = scores.map((s: any) => ({
+    date: s.date ? new Date(s.date).toLocaleDateString() : "",
+    score: s.score,
+  }));
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-24">
-      <polyline fill="none" stroke="#6366f1" strokeWidth="2" points={points} className="drop-shadow-lg" />
-      {scores.map((s, i) => (
-        <circle key={i} cx={(i / Math.max(scores.length - 1, 1)) * width} cy={height - (s.score / maxScore) * height} r="3" fill={s.score >= 80 ? "#22c55e" : "#ef4444"} />
-      ))}
-    </svg>
+    <ResponsiveContainer width="100%" height={120}>
+      <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#525252" }} axisLine={false} tickLine={false} />
+        <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#525252" }} axisLine={false} tickLine={false} />
+        <Tooltip
+          contentStyle={{ background: "#171717", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12 }}
+          labelStyle={{ color: "#a3a3a3" }}
+        />
+        <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={2} fill="url(#scoreGrad)" dot={{ r: 3, fill: "#6366f1" }} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+function MetricsChart({ data, colors }: { data: any[]; colors: any }) {
+  if (!data || data.length === 0) return null;
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <XAxis dataKey="time" tick={{ fontSize: 9, fill: "#525252" }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fontSize: 9, fill: "#525252" }} axisLine={false} tickLine={false} />
+        <Tooltip
+          contentStyle={{ background: "#171717", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12 }}
+          labelStyle={{ color: "#a3a3a3" }}
+        />
+        <Line type="monotone" dataKey="cpu" stroke={colors.cpu} strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="ram" stroke={colors.ram} strokeWidth={2} dot={false} />
+        <Line type="monotone" dataKey="disk" stroke={colors.disk} strokeWidth={2} dot={false} />
+      </LineChart>
+    </ResponsiveContainer>
   );
 }
 

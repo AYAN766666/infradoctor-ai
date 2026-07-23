@@ -17,7 +17,9 @@ import {
   MessageCircle,
   Quote,
   Menu,
-  X
+  X,
+  Sun,
+  Moon
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,7 @@ function PriceCard({ tier, price, description, features, featured = false }: { t
 export default function LandingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     fetch(`${API_BASE}/reviews/`)
@@ -114,12 +117,19 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium hover:text-white transition-colors">Sign in</Link>
             <Link href="/register" className="px-4 py-2 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]">Get Started</Link>
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-xl border border-white/10 text-neutral-400 hover:text-white hover:border-white/20 transition-all" title="Toggle theme">
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
           </div>
 
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 text-neutral-400 hover:text-white transition-colors" aria-label="Menu">
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+          <div className="flex md:hidden items-center gap-2">
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-neutral-400 hover:text-white transition-colors">
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-neutral-400 hover:text-white transition-colors" aria-label="Menu">
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
 
         {mobileOpen && (
           <div className="md:hidden border-t border-white/5 bg-neutral-950/95 backdrop-blur-md">
@@ -137,6 +147,7 @@ export default function LandingPage() {
             </div>
           </div>
         )}
+        </div>
       </nav>
 
       {/* Hero Section */}
