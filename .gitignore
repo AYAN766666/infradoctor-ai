@@ -28,7 +28,6 @@ fe_out.txt
 
 .vercel
 .env*
-!.env.example
 accesstoken.txt
 access*
 infra_doctor.db
