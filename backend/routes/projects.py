@@ -102,7 +102,13 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
         pass
 
     return {
-        "project": db_project,
+        "project": {
+            "id": db_project.id,
+            "name": db_project.name,
+            "github_url": db_project.github_url,
+            "environment": db_project.environment,
+            "status": db_project.status,
+        },
         "scan": {
             "id": report.id,
             "status": report.status,
