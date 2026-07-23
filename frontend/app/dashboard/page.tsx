@@ -24,7 +24,6 @@ import {
   MessageCircle,
   Star,
   Trash2,
-  Bot,
   ExternalLink,
   CheckCircle2,
   Menu,
@@ -116,7 +115,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
 }
 
 
-function SecurityView({ projects, focusedProjectId }: { projects: Project[]; focusedProjectId: number | null }) {
+function SecurityView({ projects, focusedProjectId, theme }: { projects: Project[]; focusedProjectId: number | null; theme: string }) {
   const [scanData, setScanData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -173,7 +172,7 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
   const scanError = scanData?.status === "error" ? (scanData?.error || "Scan failed") : null;
 
   return (
-    <div className="space-y-8">
+    <div className={cn("space-y-8", theme === "light" ? "text-slate-900" : "text-white")}>
       {scanError && (
         <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-start gap-3">
           <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
@@ -185,8 +184,8 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
       )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Security Center</h1>
-          <p className="text-neutral-500 text-sm mt-1">Scanned files and security issues from your repository.</p>
+          <h1 className={cn("text-2xl font-bold tracking-tight", theme === "light" ? "text-slate-900" : "text-white")}>Security Center</h1>
+          <p className={cn("text-sm mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Scanned files and security issues from your repository.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={triggerScan} disabled={scanning} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-500 transition-all disabled:opacity-50">
@@ -209,23 +208,23 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
       )}
 
       {/* Files with Issues */}
-      <div className="bg-neutral-900/50 border border-white/5 rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-white/5">
-          <h2 className="font-bold flex items-center gap-2">
+      <div className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
+        <div className={cn("p-6 border-b", theme === "light" ? "border-slate-200" : "border-white/5")}>
+          <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-900" : "text-white")}>
             <AlertTriangle size={18} className="text-red-500" />
             Files with Security Issues ({filesWithIssues.length})
           </h2>
         </div>
-        <div className="divide-y divide-white/5">
+        <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
           {filesWithIssues.length > 0 ? (
             filesWithIssues.map((file: any, i: number) => (
-              <div key={i} className="p-6 hover:bg-white/5 transition-colors">
+              <div key={i} className={cn("p-6 transition-colors", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
                     <AlertTriangle size={20} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-bold">{file.path}</h4>
+                    <h4 className={cn("text-sm font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{file.path}</h4>
                     <p className="text-xs text-neutral-500">{file.size_hr} • {file.issue_count} issue(s)</p>
                   </div>
                 </div>
@@ -499,78 +498,6 @@ function MetricsChart({ data, colors }: { data: any[]; colors: any }) {
   );
 }
 
-function AIChatView({ projects, focusedProjectId }: { projects: Project[]; focusedProjectId: number | null }) {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const projectId = focusedProjectId || (projects.length > 0 ? projects[0].id : null);
-  const chatRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [messages]);
-  const sendMessage = async () => {
-    if (!input.trim() || !projectId) return;
-    const userMsg = { role: "user", content: input };
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/ai/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ project_id: projectId, message: input }),
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't process that." }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Network error. Please try again." }]);
-    }
-    setLoading(false);
-  };
-  if (!projectId) return <div className="p-12 text-center text-neutral-500 text-sm">No project selected.</div>;
-  return (
-    <div className="flex flex-col h-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Bot size={24} className="text-indigo-500" /> AI Assistant
-        </h1>
-        <p className="text-neutral-500 text-sm mt-1">Ask about your infrastructure security, get remediation advice, or analyze logs.</p>
-      </div>
-      <div ref={chatRef} className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[300px] max-h-[400px] p-4 rounded-3xl bg-neutral-900/50 border border-white/5">
-        {messages.length === 0 && (
-          <div className="text-center py-12">
-            <Bot size={40} className="mx-auto text-indigo-500/30 mb-3" />
-            <p className="text-neutral-500 text-sm">Ask me anything about your infrastructure security!</p>
-            <div className="flex flex-wrap gap-2 justify-center mt-4">
-              {["What issues did you find?", "How do I fix the exposed API keys?", "What's my security score trend?", "Generate a compliance report"].map((q, i) => (
-                <button key={i} onClick={() => { setInput(q); }} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-neutral-400 hover:text-white hover:border-indigo-500/50 transition-all">{q}</button>
-              ))}
-            </div>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] p-4 rounded-2xl ${msg.role === "user" ? "bg-indigo-600 text-white" : "bg-white/5 border border-white/10 text-neutral-200"}`}>
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-              <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Ask about your infrastructure..." className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-neutral-600 outline-none focus:border-indigo-500/50" />
-        <button onClick={sendMessage} disabled={loading || !input.trim()} className="px-6 py-3 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all disabled:opacity-50">Send</button>
-      </div>
-    </div>
-  );
-}
 
 function InfrastructureView({ projectId }: { projectId?: number }) {
   const [infrastructure, setInfrastructure] = useState<any[]>([]);
@@ -1228,7 +1155,6 @@ export default function DashboardPage() {
           <SidebarItem icon={<Server size={20} />} label="Infrastructure" active={activeView === "Infrastructure"} onClick={() => { setActiveView("Infrastructure"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Database size={20} />} label="Databases" active={activeView === "Databases"} onClick={() => { setActiveView("Databases"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<ShieldCheck size={20} />} label="Security" active={activeView === "Security"} onClick={() => { setActiveView("Security"); setMobileSidebarOpen(false); }} theme={theme} />
-          <SidebarItem icon={<Bot size={20} />} label="AI Chat" active={activeView === "AIChat"} onClick={() => { setActiveView("AIChat"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<MessageCircle size={20} />} label="Reviews" active={activeView === "Reviews"} onClick={() => { setActiveView("Reviews"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Settings size={20} />} label="Settings" active={activeView === "Settings"} onClick={() => { setActiveView("Settings"); setMobileSidebarOpen(false); }} theme={theme} />
         </nav>
@@ -1320,8 +1246,7 @@ export default function DashboardPage() {
           {activeView === "Overview" && <OverviewView projects={projects} alerts={alerts} setShowAddModal={setShowAddModal} deleteProject={deleteProject} metrics={metrics} theme={theme} focusedProjectId={focusedProjectId} setFocus={setFocus} viewProjectScan={viewProjectScan} triggerScan={triggerScan} deletingId={deletingId} setDeletingId={setDeletingId} />}
           {activeView === "Infrastructure" && <InfrastructureView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} />}
           {activeView === "Databases" && <DatabasesView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} />}
-          {activeView === "Security" && <SecurityView projects={projects} focusedProjectId={focusedProjectId} />}
-          {activeView === "AIChat" && <AIChatView projects={projects} focusedProjectId={focusedProjectId} />}
+          {activeView === "Security" && <SecurityView projects={projects} focusedProjectId={focusedProjectId} theme={theme} />}
           {activeView === "Reviews" && <ReviewsView theme={theme} userEmail={userName} />}
           {activeView === "Settings" && <SettingsView theme={theme} setTheme={handleThemeChange} focusedProjectId={focusedProjectId} setFocusedProjectId={setFocusedProjectId} setProjects={setProjects} setAlerts={setAlerts} fetchData={fetchData} projects={projects} deletingId={deletingId} setDeletingId={setDeletingId} />}
         </div>
