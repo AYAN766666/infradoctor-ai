@@ -110,10 +110,28 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </button>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
+          <h3 className={cn("text-4xl font-bold", displayColor === "green" ? "text-green-500" : "text-red-500")}>{displayScore}</h3>
+          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Security Score</p>
+        </div>
+        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
+          <h3 className={cn("text-4xl font-bold", theme === "light" ? "text-slate-900" : "text-white")}>{activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0)}</h3>
+          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Files Scanned</p>
+        </div>
+        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
+          <h3 className={cn("text-4xl font-bold", totalIssues > 0 ? "text-red-500" : "text-green-500")}>{totalIssues}</h3>
+          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Issues Found</p>
+        </div>
+        <div className={cn("p-6 rounded-3xl border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
+          <h3 className={cn("text-2xl font-bold", theme === "light" ? "text-slate-900" : "text-white")}>{aggSize}</h3>
+          <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Storage</p>
+        </div>
+      </div>
+
     </>
   );
 }
-
 
 function SecurityView({ projects, focusedProjectId, theme }: { projects: Project[]; focusedProjectId: number | null; theme: string }) {
   const [scanData, setScanData] = useState<any>(null);
