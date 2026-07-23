@@ -18,28 +18,17 @@ import {
   Server,
   Database,
   ShieldCheck,
-  MoreVertical,
   Loader2,
   X,
-  Zap,
-  GitBranch,
-  Globe,
   AlertTriangle,
   MessageCircle,
   Star,
   Trash2,
   Bot,
-  Cloud,
-  BarChart3,
-  Download,
-  FileText,
-  TrendingUp,
-  GitPullRequest,
   ExternalLink,
   CheckCircle2,
   Menu,
   ChevronDown,
-  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -121,277 +110,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
           Add Resource
         </button>
       </div>
-      {/* Score Timeline */}
-      {scores.length > 1 && (
-        <div className="mb-6 p-4 sm:p-6 bg-neutral-900/50 border border-white/5 rounded-3xl">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold flex items-center gap-2"><TrendingUp size={16} className="text-indigo-500" /> Score Timeline</h3>
-            <span className="text-[10px] text-neutral-500">{scores.length} scans</span>
-          </div>
-          <ScoreTimelineChart scores={scores} />
-          <div className="flex justify-between text-[9px] text-neutral-600 mt-1">
-            {scores.filter((_, i) => i === 0 || i === scores.length - 1 || i === Math.floor(scores.length / 2)).map((s, i) => (
-              <span key={i}>{s.date ? new Date(s.date).toLocaleDateString() : ""}</span>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Metrics Chart */}
-      {scores.length > 1 && (
-        <div className="mb-6 p-4 sm:p-6 bg-neutral-900/50 border border-white/5 rounded-3xl">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold flex items-center gap-2"><BarChart3 size={16} className="text-indigo-500" /> Performance Metrics</h3>
-            <span className="text-[10px] text-neutral-500">Real-time</span>
-          </div>
-          <MetricsChart
-            data={scores.map((s: any, i: number) => ({
-              time: s.date ? new Date(s.date).toLocaleDateString() : `Scan ${i + 1}`,
-              cpu: Math.min(95, Math.max(10, (s.score || 50) + Math.floor(Math.random() * 20 - 10))),
-              ram: Math.min(90, Math.max(20, (s.score || 50) + Math.floor(Math.random() * 15 - 7))),
-              disk: Math.min(85, Math.max(15, (s.score || 50) + Math.floor(Math.random() * 10 - 5))),
-            }))}
-            colors={{ cpu: "#6366f1", ram: "#22c55e", disk: "#eab308" }}
-          />
-          <div className="flex gap-4 mt-2 text-[10px] text-neutral-500">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" /> CPU</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> RAM</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" /> Disk</span>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-        <StatCard label="Security Score" value={displayScore} trend={displayTrend} color={displayColor} theme={theme} />
-        <StatCard label="Files Scanned" value={activeScan ? activeScan.total_files.toString() : (totalFiles > 0 ? totalFiles.toString() : "0")} trend={activeScan ? "Total files" : (totalFiles > 0 ? "All projects" : "No files")} color="indigo" theme={theme} />
-        <StatCard label="Storage" value={aggSize} trend={activeScan ? `${activeScan.total_files} files` : (totalFiles > 0 ? `${totalFiles} files total` : "No files")} color="indigo" theme={theme} />
-        <StatCard label="Issues Found" value={activeScan ? activeScan.issues_found.toString() : (totalIssues > 0 ? totalIssues.toString() : "0")} trend={activeScan ? (activeScan.issues_found > 0 ? "Review Required" : "Clean") : (totalIssues > 0 ? "Review Required" : "Clean")} color={activeScan ? (activeScan.issues_found > 0 ? "red" : "green") : (totalIssues > 0 ? "red" : "green")} theme={theme} />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-8 p-4 sm:p-6 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/10 rounded-3xl">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-bold flex items-center gap-2 text-white">
-              <Zap size={16} className="text-indigo-400" /> Quick Actions
-            </h3>
-            <p className="text-xs text-neutral-500 mt-1">One-click operations for your infrastructure</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => { if (focusedProjectId) triggerScan(focusedProjectId); }}
-              disabled={!focusedProjectId}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-500 disabled:opacity-50 transition-all text-white"
-            >
-              <Activity size={16} /> Run Scan
-            </button>
-            <button
-              onClick={() => {
-                if (!projects.length) return;
-                const p = projects.find((x: Project) => x.id === focusedProjectId) || projects[0];
-                const scanData = {
-                  projects: projects.map((x: Project) => ({ name: x.name, score: x.scan?.score, issues: x.scan?.issues_found, files: x.scan?.total_files })),
-                  generatedAt: new Date().toISOString(),
-                };
-                const blob = new Blob([JSON.stringify(scanData, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a"); a.href = url; a.download = `infradoctor-report-${Date.now()}.json`; a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-bold hover:bg-white/10 transition-all text-white"
-            >
-              <Download size={16} /> Export Report
-            </button>
-            <button
-              onClick={() => { window.open("https://github.com/AYAN766666/infradoctor-ai", "_blank"); }}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-bold hover:bg-white/10 transition-all text-white"
-            >
-              <GitBranch size={16} /> View on GitHub
-            </button>
-          </div>
-        </div>
-      </div>
-      {/* Content Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-         {/* Recent Alerts */}
-         <div className={cn(
-           "border rounded-3xl overflow-hidden flex flex-col transition-all duration-300",
-           theme === "light" ? "bg-white border-slate-200 shadow-sm" : "bg-neutral-900/50 border-white/5"
-         )}>
-          <div className={cn(
-            "p-6 border-b flex items-center justify-between",
-            theme === "light" ? "border-slate-100" : "border-white/5"
-          )}>
-            <div>
-              <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
-                <AlertTriangle size={18} className="text-yellow-500" />
-                Live Monitoring Alerts
-              </h2>
-              {projects.length > 0 && (
-                <p className={cn("text-xs mt-2", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
-                  Project: <span className={cn("font-bold", theme === "light" ? "text-slate-700" : "text-neutral-300")}>{projects[0].name}</span>
-                </p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <span className="px-2 py-0.5 rounded-lg bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-wider">Live</span>
-            </div>
-          </div>
-          <div className={cn(
-            "flex-1",
-            theme === "light" ? "divide-slate-100" : "divide-white/5"
-          )}>
-            {alerts.length > 0 ? (
-              <IncidentRow 
-                key={alerts[0].id}
-                title={alerts[0].title} 
-                time="Just now" 
-                status={alerts[0].severity === "critical" ? "Critical" : "Warning"} 
-                owner="Monitoring Engine"
-                theme={theme}
-              />
-            ) : (
-              <div className="p-12 text-center text-neutral-500 text-sm">
-                No active alerts. Your system is healthy.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Resources List */}
-         <div className={cn(
-           "border rounded-3xl overflow-hidden flex flex-col transition-all duration-300",
-           theme === "light" ? "bg-white border-slate-200 shadow-sm" : "bg-neutral-900/50 border-white/5"
-         )}>
-          <div className={cn(
-            "p-6 border-b flex items-center justify-between",
-            theme === "light" ? "border-slate-100" : "border-white/5"
-          )}>
-            <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
-              <Server size={18} className="text-indigo-500" />
-              Active Resources
-            </h2>
-            <button className="text-xs text-neutral-500 hover:text-indigo-600 transition-colors">Manage all</button>
-          </div>
-          <div className={cn(
-            "divide-y flex-1",
-            theme === "light" ? "divide-slate-100" : "divide-white/5"
-          )}>
-              {projects.length > 0 ? (
-              projects.map((project: Project) => {
-                const scan = project.scan;
-                const isSecure = scan ? scan.score >= 80 : true;
-                const hasIssues = scan ? scan.issues_found > 0 : false;
-                return (
-                  <div key={project.id} onClick={() => setFocus(project.id)} className={cn(
-                    "p-6 flex items-center justify-between group transition-colors cursor-pointer",
-                    theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
-                    focusedProjectId === project.id ? "ring-2 ring-indigo-500" : ""
-                  )}>
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center",
-                        theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500"
-                      )}>
-                        {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className={cn("text-sm font-bold tracking-tight", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
-                          {focusedProjectId === project.id && (
-                            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30">ACTIVE</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>
-                            {project.environment}
-                          </span>
-                          <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
-                          {focusedProjectId === project.id ? (
-                            <span className={cn(
-                              "flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider",
-                              isSecure ? "text-emerald-600" : "text-amber-600"
-                            )}>
-                              <ShieldCheck size={12} />
-                              {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">
-                              INACTIVE
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); viewProjectScan(project.id); }}
-                        className={cn(
-                          "p-2 transition-colors lg:opacity-0 lg:group-hover:opacity-100",
-                          theme === "light" ? "text-slate-400 hover:text-indigo-600" : "text-neutral-600 hover:text-indigo-500"
-                        )}
-                        title="View scan details"
-                      >
-                        <ShieldCheck size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
-                        className={cn(
-                          "p-2 transition-colors lg:opacity-0 lg:group-hover:opacity-100",
-                          theme === "light" ? "text-slate-400 hover:text-green-600" : "text-neutral-600 hover:text-green-500"
-                        )}
-                        title="Run security scan"
-                      >
-                        <Activity size={16} />
-                      </button>
-                      {scan && (
-                        <span className={cn(
-                          "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border",
-                          isSecure
-                            ? "bg-green-500/10 text-green-500 border-green-500/20"
-                            : "bg-red-500/10 text-red-500 border-red-500/20"
-                        )}>
-                          {scan.score}%
-                        </span>
-                      )}
-                      <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold uppercase tracking-widest border border-green-500/20">
-                        {project.status}
-                      </span>
-                      <motion.button
-                        onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
-                        whileHover={{ scale: 1.15, rotate: 15 }}
-                        whileTap={{ scale: 0.9 }}
-                        className={cn(
-                          "p-2 transition-colors",
-                          deletingId === project.id ? "text-red-500 animate-pulse" : theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500"
-                        )}
-                        title="Delete project"
-                        disabled={deletingId === project.id}
-                      >
-                        {deletingId === project.id ? (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          >
-                            <Loader2 size={16} />
-                          </motion.div>
-                        ) : (
-                          <Trash2 size={16} />
-                        )}
-                      </motion.button>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="p-12 text-center text-neutral-500 text-sm">
-                No resources found. Add your first project.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </>
   );
 }
@@ -401,17 +120,7 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
   const [scanData, setScanData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [creatingPR, setCreatingPR] = useState(false);
   const [prResult, setPrResult] = useState<any>(null);
-  const [driftData, setDriftData] = useState<any>(null);
-  const [showDrift, setShowDrift] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [complianceReport, setComplianceReport] = useState<any>(null);
-  const [showCompliance, setShowCompliance] = useState(false);
-  const [complianceFramework, setComplianceFramework] = useState("SOC2");
-  const [scores, setScores] = useState<any[]>([]);
 
   const projectId = focusedProjectId || (projects.length > 0 ? projects[0].id : null);
 
@@ -431,16 +140,6 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
     fetchScan();
   }, [projectId]);
 
-  useEffect(() => {
-    if (!projectId) return;
-    const token = localStorage.getItem("token");
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    fetch(`${API_BASE}/projects/${projectId}/scores`, { headers })
-      .then(r => r.ok ? r.json() : null).then(d => d?.scores && setScores(d.scores)).catch(() => {});
-    fetch(`${API_BASE}/projects/${projectId}/comments`, { headers })
-      .then(r => r.ok ? r.json() : null).then(d => d?.comments && setComments(d.comments)).catch(() => {});
-  }, [projectId]);
-
   const triggerScan = async () => {
     if (!projectId) return;
     setScanning(true);
@@ -454,63 +153,6 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
     } finally {
       setScanning(false);
     }
-  };
-
-  const createFixPR = async () => {
-    if (!projectId) return;
-    setCreatingPR(true);
-    setPrResult(null);
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`${API_BASE}/projects/${projectId}/fix-pr`, {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: "{}",
-      });
-      const data = await res.json();
-      setPrResult(data);
-      if (data.message) toast.success(data.message);
-      else if (data.error) toast.error(data.error);
-    } catch { toast.error("Failed to create PR"); }
-    setCreatingPR(false);
-  };
-
-  const fetchDrift = async () => {
-    if (!projectId) return;
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`${API_BASE}/projects/${projectId}/drift`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setDriftData(data.drift);
-      setShowDrift(true);
-    } catch { toast.error("Failed to fetch drift"); }
-  };
-
-  const addComment = async () => {
-    if (!commentText.trim() || !projectId) return;
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`${API_BASE}/projects/${projectId}/comments`, {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: commentText }),
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setComments(prev => [d.comment, ...prev]);
-        setCommentText("");
-        toast.success("Comment added");
-      }
-    } catch {}
-  };
-
-  const fetchCompliance = async () => {
-    if (!projectId) return;
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`${API_BASE}/projects/${projectId}/compliance?framework=${complianceFramework}`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setComplianceReport(data);
-      setShowCompliance(true);
-    } catch { toast.error("Failed to generate report"); }
   };
 
   if (!projectId) return (
@@ -565,26 +207,6 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
           <button onClick={() => setPrResult(null)} className="text-neutral-500 hover:text-white"><X size={16} /></button>
         </div>
       )}
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <h3 className={cn("text-4xl font-bold", scanData?.score >= 80 ? "text-green-500" : "text-red-500")}>{scanData?.score ?? 0}%</h3>
-          {scores.length > 1 && (
-            <div className="mt-2">
-              <ScoreTimelineChart scores={scores} />
-            </div>
-          )}
-        </div>
-        <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <h3 className="text-4xl font-bold text-white">{scanData?.total_files ?? 0}</h3>
-        </div>
-        <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <h3 className={cn("text-4xl font-bold", totalIssues > 0 ? "text-red-500" : "text-green-500")}>{totalIssues}</h3>
-        </div>
-        <div className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-          <h3 className="text-2xl font-bold text-white">{scanData?.total_size_hr || "0 B"}</h3>
-        </div>
-      </div>
 
       {/* Files with Issues */}
       <div className="bg-neutral-900/50 border border-white/5 rounded-3xl overflow-hidden">
@@ -657,179 +279,6 @@ function SecurityView({ projects, focusedProjectId }: { projects: Project[]; foc
           )}
         </div>
       </div>
-
-      {/* All Scanned Files */}
-      <div className="bg-neutral-900/50 border border-white/5 rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-white/5">
-          <h2 className="font-bold flex items-center gap-2">
-            <Server size={18} className="text-indigo-500" />
-            All Scanned Files ({files.length})
-          </h2>
-        </div>
-        <div className="divide-y divide-white/5">
-          {files.length > 0 ? (
-            files.map((file: any, i: number) => (
-              <div key={i} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0",
-                    file.issue_count > 0 ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
-                  )}>
-                    {file.size_hr?.includes("KB") || file.size_hr?.includes("MB") ? "!" : "."}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn(
-                      "text-sm truncate",
-                      file.issue_count > 0 ? "text-red-400 font-bold" : "text-neutral-300"
-                    )}>{file.path}</p>
-                    <p className="text-[10px] text-neutral-600">{file.size_hr}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  {file.sensitive_name && (
-                    <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-500 text-[9px] font-bold uppercase">Sensitive</span>
-                  )}
-                  {file.is_large && (
-                    <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-500 text-[9px] font-bold uppercase">Large</span>
-                  )}
-                  <span className={cn(
-                    "px-2 py-0.5 rounded text-[9px] font-bold",
-                    file.issue_count === 0 ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                  )}>
-                    {file.issue_count > 0 ? `${file.issue_count} issue(s)` : "Clean"}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-12 text-center text-neutral-500 text-sm">
-              No files scanned yet. Run a security scan.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Drift Detection Modal */}
-      {showDrift && driftData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setShowDrift(false)} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
-          <div className="bg-neutral-900 border border-white/10 p-6 rounded-3xl max-w-lg w-full relative shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg flex items-center gap-2"><TrendingUp size={20} className="text-blue-500" /> Drift Detection</h2>
-              <button onClick={() => setShowDrift(false)} className="text-neutral-500 hover:text-white"><X size={20} /></button>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between p-3 bg-white/5 rounded-xl">
-                <span className="text-neutral-400">Score Change</span>
-                <span className={driftData.score_change >= 0 ? "text-green-500 font-bold" : "text-red-500 font-bold"}>{driftData.score_change >= 0 ? "+" : ""}{driftData.score_change}%</span>
-              </div>
-              <div className="flex justify-between p-3 bg-white/5 rounded-xl">
-                <span className="text-neutral-400">Old Score</span><span className="text-white">{driftData.old_score}%</span>
-              </div>
-              <div className="flex justify-between p-3 bg-white/5 rounded-xl">
-                <span className="text-neutral-400">New Score</span><span className="text-white">{driftData.new_score}%</span>
-              </div>
-              {driftData.files_added?.length > 0 && (
-                <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
-                  <p className="font-bold text-green-500 text-xs mb-1">Files Added ({driftData.files_added.length})</p>
-                  <div className="text-xs text-neutral-400 max-h-24 overflow-y-auto">{driftData.files_added.map((f: string) => <div key={f}>+ {f}</div>)}</div>
-                </div>
-              )}
-              {driftData.files_removed?.length > 0 && (
-                <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
-                  <p className="font-bold text-red-500 text-xs mb-1">Files Removed ({driftData.files_removed.length})</p>
-                  <div className="text-xs text-neutral-400 max-h-24 overflow-y-auto">{driftData.files_removed.map((f: string) => <div key={f}>- {f}</div>)}</div>
-                </div>
-              )}
-              {driftData.new_issues?.length > 0 && (
-                <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
-                  <p className="font-bold text-red-500 text-xs mb-1">New Issues ({driftData.new_issues.length})</p>
-                  <div className="text-xs text-neutral-400 max-h-24 overflow-y-auto">{driftData.new_issues.map((i: any) => <div key={i.path+i.type}>{i.path} - {i.type}</div>)}</div>
-                </div>
-              )}
-              {driftData.fixed_issues?.length > 0 && (
-                <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
-                  <p className="font-bold text-green-500 text-xs mb-1">Fixed Issues ({driftData.fixed_issues.length})</p>
-                  <div className="text-xs text-neutral-400 max-h-24 overflow-y-auto">{driftData.fixed_issues.map((i: any) => <div key={i.path+i.type}>✓ {i.path} - {i.type}</div>)}</div>
-                </div>
-              )}
-              {!driftData && <p className="text-neutral-500">Need at least 2 scans. Run another scan first.</p>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Compliance Report Modal */}
-      {showCompliance && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setShowCompliance(false)} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
-          <div className="bg-neutral-900 border border-white/10 p-6 rounded-3xl max-w-2xl w-full relative shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg flex items-center gap-2"><FileText size={20} className="text-purple-500" /> Compliance Report</h2>
-              <button onClick={() => setShowCompliance(false)} className="text-neutral-500 hover:text-white"><X size={20} /></button>
-            </div>
-            <div className="flex gap-2 mb-4">
-              {["SOC2", "HIPAA", "PCI-DSS"].map(fw => (
-                <button key={fw} onClick={() => { setComplianceFramework(fw); }} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${complianceFramework === fw ? "bg-indigo-600 text-white" : "bg-white/5 text-neutral-400 hover:text-white"}`}>{fw}</button>
-              ))}
-              <button onClick={fetchCompliance} className="px-3 py-1.5 bg-purple-600 rounded-xl text-xs font-bold hover:bg-purple-500 ml-auto flex items-center gap-1"><Download size={12} /> Generate</button>
-            </div>
-            {complianceReport && (
-              <div className="space-y-3">
-                <div className="flex justify-between p-3 bg-white/5 rounded-xl">
-                  <span className="text-neutral-400">Status</span>
-                  <span className={complianceReport.status === "passed" ? "text-green-500 font-bold" : "text-red-500 font-bold"}>{complianceReport.status.toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-white/5 rounded-xl">
-                  <span className="text-neutral-400">Score</span><span className="text-white">{complianceReport.scan_score}%</span>
-                </div>
-                <div className="flex justify-between p-3 bg-white/5 rounded-xl">
-                  <span className="text-neutral-400">Checks Passed</span><span className="text-green-500">{complianceReport.summary?.passed_checks}/{complianceReport.summary?.total_checks}</span>
-                </div>
-                <div className="space-y-1">
-                  {(complianceReport.checks || []).map((check: any) => (
-                    <div key={check.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5">
-                      {check.passed ? <CheckCircle2 size={14} className="text-green-500 shrink-0" /> : <X size={14} className="text-red-500 shrink-0" />}
-                      <span className="text-xs flex-1">{check.name}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${check.severity === "critical" ? "bg-red-500/20 text-red-500" : check.severity === "high" ? "bg-amber-500/20 text-amber-500" : "bg-yellow-500/20 text-yellow-500"}`}>{check.severity}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-neutral-500 mt-2">Framework: {complianceReport.framework} - {complianceReport.framework_description}</div>
-              </div>
-            )}
-            {!complianceReport && <p className="text-neutral-500 text-sm">Select a framework and click Generate.</p>}
-          </div>
-        </div>
-      )}
-
-      {/* Comments Modal */}
-      {showComments && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setShowComments(false)} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
-          <div className="bg-neutral-900 border border-white/10 p-6 rounded-3xl max-w-lg w-full relative shadow-2xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg flex items-center gap-2"><MessageSquare size={20} className="text-amber-500" /> Comments</h2>
-              <button onClick={() => setShowComments(false)} className="text-neutral-500 hover:text-white"><X size={20} /></button>
-            </div>
-            <div className="flex gap-2 mb-4">
-              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === "Enter" && addComment()} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-neutral-600 outline-none focus:border-indigo-500/50" />
-              <button onClick={addComment} className="px-4 py-2 bg-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-500 disabled:opacity-50" disabled={!commentText.trim()}>Send</button>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {comments.length > 0 ? comments.map((c: any) => (
-                <div key={c.id} className="p-3 bg-white/5 rounded-xl">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-indigo-400">{c.author_name || "User"}</span>
-                    <span className="text-[9px] text-neutral-500">{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</span>
-                  </div>
-                  <p className="text-sm text-neutral-300">{c.text}</p>
-                </div>
-              )) : <p className="text-neutral-500 text-sm text-center py-8">No comments yet.</p>}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1119,58 +568,6 @@ function AIChatView({ projects, focusedProjectId }: { projects: Project[]; focus
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Ask about your infrastructure..." className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-neutral-600 outline-none focus:border-indigo-500/50" />
         <button onClick={sendMessage} disabled={loading || !input.trim()} className="px-6 py-3 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all disabled:opacity-50">Send</button>
       </div>
-    </div>
-  );
-}
-
-function CloudInsightsView({ projects, focusedProjectId }: { projects: Project[]; focusedProjectId: number | null }) {
-  const [insights, setInsights] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const projectId = focusedProjectId || (projects.length > 0 ? projects[0].id : null);
-  useEffect(() => {
-    if (!projectId) return;
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    fetch(`${API_BASE}/projects/${projectId}/cloud-insights`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null).then(d => setInsights(d)).catch(() => {}).finally(() => setLoading(false));
-  }, [projectId]);
-  if (!projectId) return <div className="p-12 text-center text-neutral-500 text-sm">No project selected.</div>;
-  if (loading) return <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />;
-  const providers = insights?.providers || {};
-  const providerColors: any = { AWS: "#FF9900", GCP: "#4285F4", Azure: "#0078D4" };
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><Cloud size={24} className="text-indigo-500" /> Cloud Insights</h1>
-        <p className="text-neutral-500 text-sm mt-1">Multi-cloud resource distribution and security posture.</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(providers).filter(([name]) => name !== "Other").map(([name, data]: [string, any]) => (
-          <div key={name} className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: `${providerColors[name]}20`, color: providerColors[name] }}>{name[0]}</div>
-              <div>
-                <h3 className="font-bold text-sm">{name}</h3>
-                <p className="text-[10px] text-neutral-500">{data.file_count || 0} files</p>
-              </div>
-            </div>
-            <div className="space-y-2 text-xs">
-              <p className="text-neutral-400">Issues: <span className={data.issues > 0 ? "text-red-500 font-bold" : "text-green-500"}>{data.issues}</span></p>
-              <p className="text-neutral-400">Services: <span className="text-white">{(data.services || []).join(", ") || "None detected"}</span></p>
-            </div>
-          </div>
-        ))}
-      </div>
-      {Object.entries(providers).filter(([name, d]: any) => name !== "Other" && d.files?.length > 0).map(([name, data]: [string, any]) => (
-        <div key={name} className="bg-neutral-900/50 border border-white/5 rounded-3xl overflow-hidden">
-          <div className="p-4 border-b border-white/5"><h3 className="font-bold text-sm" style={{ color: providerColors[name] }}>{name} Files</h3></div>
-          <div className="divide-y divide-white/5 max-h-40 overflow-y-auto">
-            {data.files.slice(0, 10).map((f: string, i: number) => (
-              <div key={i} className="px-4 py-2 text-xs text-neutral-400 truncate">{f}</div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
