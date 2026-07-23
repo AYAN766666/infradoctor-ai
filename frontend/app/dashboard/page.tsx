@@ -24,6 +24,8 @@ import {
   MessageCircle,
   Star,
   Trash2,
+  Globe,
+  GitBranch,
   ExternalLink,
   CheckCircle2,
   Menu,
@@ -128,6 +130,81 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
           <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Storage</p>
         </div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}
+      >
+        <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
+          <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
+            <Server size={18} className="text-indigo-500" />
+            Active Resources
+          </h2>
+        </div>
+        <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
+          {projects.length > 0 ? (
+            projects.map((project: Project, i: number) => {
+              const scan = project.scan;
+              const isSecure = scan ? scan.score >= 80 : true;
+              return (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  onClick={() => setFocus(project.id)}
+                  className={cn(
+                    "p-5 flex items-center justify-between group transition-colors cursor-pointer",
+                    theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
+                    focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
+                      {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className={cn("text-sm font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
+                        {focusedProjectId === project.id && (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30">ACTIVE</span>
+                        )}
+                      </div>
+                      <p className={cn("text-xs", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
+                        {project.environment} • {project.github_url?.split("/").slice(-2).join("/") || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {scan && (
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border",
+                        isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"
+                      )}>
+                        {scan.score}%
+                      </span>
+                    )}
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
+                      className={cn("p-2 transition-colors", theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500")}
+                    >
+                      <Trash2 size={16} />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="p-12 text-center">
+              <p className={cn("text-sm", theme === "light" ? "text-slate-500" : "text-neutral-500")}>No resources found. Add your first project.</p>
+            </div>
+          )}
+        </div>
+      </motion.div>
 
     </>
   );
