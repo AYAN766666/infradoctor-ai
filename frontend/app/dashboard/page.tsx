@@ -149,7 +149,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
               const scan = project.scan;
               const isSecure = scan ? scan.score >= 80 : true;
               return (
-                <motion.div
+                  <motion.div
                   key={project.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -172,26 +172,26 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                           <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30">ACTIVE</span>
                         )}
                       </div>
-                      <p className={cn("text-xs", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
-                        {project.environment} • {project.github_url?.split("/").slice(-2).join("/") || "N/A"}
-                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
+                        <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
+                        {focusedProjectId === project.id ? (
+                          <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
+                            <ShieldCheck size={12} />
+                            {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {scan && (
-                      <span className={cn(
-                        "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border",
-                        isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"
-                      )}>
-                        {scan.score}%
-                      </span>
+                      <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
                     )}
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
-                      className={cn("p-2 transition-colors", theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500")}
-                    >
+                    <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", theme === "light" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-green-500/10 text-green-500 border-green-500/20")}>{project.status}</span>
+                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }} className={cn("p-2 transition-colors", theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500")}>
                       <Trash2 size={16} />
                     </motion.button>
                   </div>
