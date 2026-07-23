@@ -5,7 +5,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET", "SUPER_SECRET_KEY_REPLACE_IN_PROD")
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
