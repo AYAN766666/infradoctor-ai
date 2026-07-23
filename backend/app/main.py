@@ -16,11 +16,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 _import_error = None
 try:
-    from routes import auth, projects, logs, alerts, ai, security, team, settings, metrics, infrastructure, databases, reviews, ws
+    from routes import auth, projects, logs, alerts, ai, security, team, settings, metrics, infrastructure, databases, reviews, ws, features
     from services.monitor import monitoring_engine
     from db.db import engine, Base
     from sqlalchemy import inspect, text
-    from models import user, project, alert, log, ai_report, scan_result, review
+    from models import user, project, alert, log, ai_report, scan_result, review, comment
     import models.infrastructure
     import models.database
     import models.setting
@@ -112,6 +112,7 @@ if _import_error is None:
     app.include_router(databases.router, prefix="/databases", tags=["databases"])
     app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
     app.include_router(ws.router)
+    app.include_router(features.router, prefix="", tags=["features"])
 
 if __name__ == "__main__":
     import uvicorn

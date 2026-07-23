@@ -1077,6 +1077,7 @@ function AIChatView({ projects, focusedProjectId }: { projects: Project[]; focus
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [model, setModel] = useState("groq");
   const projectId = focusedProjectId || (projects.length > 0 ? projects[0].id : null);
   const chatRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1093,7 +1094,7 @@ function AIChatView({ projects, focusedProjectId }: { projects: Project[]; focus
       const res = await fetch(`${API_BASE}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ project_id: projectId, message: input }),
+        body: JSON.stringify({ project_id: projectId, message: input, model }),
       });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't process that." }]);
@@ -1105,11 +1106,17 @@ function AIChatView({ projects, focusedProjectId }: { projects: Project[]; focus
   if (!projectId) return <div className="p-12 text-center text-neutral-500 text-sm">No project selected.</div>;
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Bot size={24} className="text-indigo-500" /> AI Assistant
-        </h1>
-        <p className="text-neutral-500 text-sm mt-1">Ask about your infrastructure security, get remediation advice, or analyze logs.</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Bot size={24} className="text-indigo-500" /> AI Assistant
+          </h1>
+          <p className="text-neutral-500 text-sm mt-1">Ask about your infrastructure security, get remediation advice, or analyze logs.</p>
+        </div>
+        <select value={model} onChange={e => setModel(e.target.value)} className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:border-indigo-500/50">
+          <option value="groq" className="bg-neutral-900">Groq (Llama 3)</option>
+          <option value="claude" className="bg-neutral-900">Claude (Sonnet)</option>
+        </select>
       </div>
       <div ref={chatRef} className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[300px] max-h-[400px] p-4 rounded-3xl bg-neutral-900/50 border border-white/5">
         {messages.length === 0 && (
@@ -1160,15 +1167,15 @@ function CloudInsightsView({ projects, focusedProjectId }: { projects: Project[]
   if (!projectId) return <div className="p-12 text-center text-neutral-500 text-sm">No project selected.</div>;
   if (loading) return <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />;
   const providers = insights?.providers || {};
-  const providerColors: any = { AWS: "#FF9900", GCP: "#4285F4", Azure: "#0078D4", Other: "#6366f1" };
+  const providerColors: any = { AWS: "#FF9900", GCP: "#4285F4", Azure: "#0078D4" };
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><Cloud size={24} className="text-indigo-500" /> Cloud Insights</h1>
         <p className="text-neutral-500 text-sm mt-1">Multi-cloud resource distribution and security posture.</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Object.entries(providers).map(([name, data]: [string, any]) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Object.entries(providers).filter(([name]) => name !== "Other").map(([name, data]: [string, any]) => (
           <div key={name} className="bg-neutral-900/50 border border-white/5 p-6 rounded-3xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold" style={{ backgroundColor: `${providerColors[name]}20`, color: providerColors[name] }}>{name[0]}</div>
@@ -1184,7 +1191,7 @@ function CloudInsightsView({ projects, focusedProjectId }: { projects: Project[]
           </div>
         ))}
       </div>
-      {Object.entries(providers).filter(([_, d]: any) => d.files?.length > 0).map(([name, data]: [string, any]) => (
+      {Object.entries(providers).filter(([name, d]: any) => name !== "Other" && d.files?.length > 0).map(([name, data]: [string, any]) => (
         <div key={name} className="bg-neutral-900/50 border border-white/5 rounded-3xl overflow-hidden">
           <div className="p-4 border-b border-white/5"><h3 className="font-bold text-sm" style={{ color: providerColors[name] }}>{name} Files</h3></div>
           <div className="divide-y divide-white/5 max-h-40 overflow-y-auto">
