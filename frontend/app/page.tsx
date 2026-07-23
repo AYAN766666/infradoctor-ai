@@ -76,7 +76,18 @@ function PriceCard({ tier, price, description, features, featured = false }: { t
 export default function LandingPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme");
+      if (saved) return saved === "dark";
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useEffect(() => {
     fetch(`${API_BASE}/reviews/`)

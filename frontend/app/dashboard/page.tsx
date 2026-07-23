@@ -1549,7 +1549,9 @@ export default function DashboardPage() {
 
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") || "dark";
+      const saved = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", saved);
+      return saved;
     }
     return "dark";
   });
@@ -1558,6 +1560,7 @@ export default function DashboardPage() {
     setTheme(newTheme);
     if (typeof window !== "undefined") {
       localStorage.setItem("theme", newTheme);
+      document.documentElement.setAttribute("data-theme", newTheme);
     }
   };
 
@@ -1828,7 +1831,6 @@ export default function DashboardPage() {
           <SidebarItem icon={<Server size={20} />} label="Infrastructure" active={activeView === "Infrastructure"} onClick={() => { setActiveView("Infrastructure"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Database size={20} />} label="Databases" active={activeView === "Databases"} onClick={() => { setActiveView("Databases"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<ShieldCheck size={20} />} label="Security" active={activeView === "Security"} onClick={() => { setActiveView("Security"); setMobileSidebarOpen(false); }} theme={theme} />
-          <SidebarItem icon={<Cloud size={20} />} label="Cloud" active={activeView === "Cloud"} onClick={() => { setActiveView("Cloud"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Bot size={20} />} label="AI Chat" active={activeView === "AIChat"} onClick={() => { setActiveView("AIChat"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<MessageCircle size={20} />} label="Reviews" active={activeView === "Reviews"} onClick={() => { setActiveView("Reviews"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Settings size={20} />} label="Settings" active={activeView === "Settings"} onClick={() => { setActiveView("Settings"); setMobileSidebarOpen(false); }} theme={theme} />
@@ -1922,7 +1924,6 @@ export default function DashboardPage() {
           {activeView === "Infrastructure" && <InfrastructureView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} />}
           {activeView === "Databases" && <DatabasesView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} />}
           {activeView === "Security" && <SecurityView projects={projects} focusedProjectId={focusedProjectId} />}
-          {activeView === "Cloud" && <CloudInsightsView projects={projects} focusedProjectId={focusedProjectId} />}
           {activeView === "AIChat" && <AIChatView projects={projects} focusedProjectId={focusedProjectId} />}
           {activeView === "Reviews" && <ReviewsView theme={theme} userEmail={userName} />}
           {activeView === "Settings" && <SettingsView theme={theme} setTheme={handleThemeChange} focusedProjectId={focusedProjectId} setFocusedProjectId={setFocusedProjectId} setProjects={setProjects} setAlerts={setAlerts} fetchData={fetchData} projects={projects} deletingId={deletingId} setDeletingId={setDeletingId} />}
