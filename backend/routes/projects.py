@@ -8,6 +8,10 @@ from models.project import Project
 from models.scan_result import ScanResult
 from models.infrastructure import Infrastructure
 from models.database import Database
+from models.ai_report import AIReport
+from models.alert import Alert
+from models.comment import Comment
+from models.log import Log
 from models.user import User
 from services.scanner import scan_github_repo
 from urllib.parse import urlparse
@@ -166,6 +170,13 @@ def delete_project(project_id: int, db: Session = Depends(get_db), user: User = 
     db_project = db.query(Project).filter(Project.id == project_id, Project.user_id == user.id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
+    db.query(ScanResult).filter(ScanResult.project_id == project_id).delete()
+    db.query(AIReport).filter(AIReport.project_id == project_id).delete()
+    db.query(Database).filter(Database.project_id == project_id).delete()
+    db.query(Alert).filter(Alert.project_id == project_id).delete()
+    db.query(Comment).filter(Comment.project_id == project_id).delete()
+    db.query(Infrastructure).filter(Infrastructure.project_id == project_id).delete()
+    db.query(Log).filter(Log.project_id == project_id).delete()
     db.delete(db_project)
     db.commit()
 
