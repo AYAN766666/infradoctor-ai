@@ -28,3 +28,5 @@ fe_out.txt
 
 .vercel
 .env*
+accesstoken.txt
+access*

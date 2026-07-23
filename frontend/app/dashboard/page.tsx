@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://infradoctor-backend.vercel.app/";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://infradoctor-backend.vercel.app";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { 

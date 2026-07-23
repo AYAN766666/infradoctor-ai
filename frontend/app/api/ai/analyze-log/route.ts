@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://infradoctor-backend.vercel.app/';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://infradoctor-backend.vercel.app';
 
 export async function POST(req: Request) {
   try {

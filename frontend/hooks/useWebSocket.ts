@@ -21,7 +21,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     if (!token) return;
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const host = "localhost:8000";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const host = apiUrl.replace(/^https?:\/\//, "") || "localhost:8000";
     const url = `${protocol}://${host}`;
 
     const client = new WsClient({
