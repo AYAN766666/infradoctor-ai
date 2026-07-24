@@ -30,6 +30,7 @@ import {
   CheckCircle2,
   Menu,
   ChevronDown,
+  RotateCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -103,111 +104,124 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
           )}
           <p className={cn("text-sm mt-2", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Real-time health status of your infrastructure clusters.</p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 text-white"
-        >
+        <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 text-white">
           <Plus size={18} />
           Add Resource
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : "text-red-500", size: "text-4xl" },
-          { value: activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0), label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
-          { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
-          { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            className={cn("p-6 rounded-3xl border transition-shadow", theme === "light" ? "bg-white border-slate-200 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
-          >
-            <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
-            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}
-      >
-        <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
-          <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
-            <Server size={18} className="text-indigo-500" />
-            Active Resources
-          </h2>
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex-1 min-w-0">
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : "text-red-500", size: "text-4xl" },
+              { value: activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0), label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
+              { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+              { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                className={cn("p-6 rounded-3xl border transition-all", theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
+              >
+                <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
+                <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
-        <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
-          {projects.length > 0 ? (
-            projects.map((project: Project, i: number) => {
-              const scan = project.scan;
-              const isSecure = scan ? scan.score >= 80 : true;
-              return (
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className={cn("w-full lg:w-96 rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}
+        >
+          <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
+            <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
+              <Server size={18} className="text-indigo-500" />
+              Active Resources
+            </h2>
+          </div>
+          <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
+            {projects.length > 0 ? (
+              projects.map((project: Project, i: number) => {
+                const scan = project.scan;
+                const isSecure = scan ? scan.score >= 80 : true;
+                return (
                   <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
-                  onClick={() => setFocus(project.id)}
-                  className={cn(
-                    "p-5 flex items-center justify-between group transition-colors cursor-pointer",
-                    theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
-                    focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
-                      {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className={cn("text-sm font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
-                        {focusedProjectId === project.id && (
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30">ACTIVE</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
-                        <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
-                        {focusedProjectId === project.id ? (
-                          <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
-                            <ShieldCheck size={12} />
-                            {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {scan && (
-                      <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
+                    key={project.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.05 }}
+                    onClick={() => setFocus(project.id)}
+                    className={cn(
+                      "p-5 flex items-center justify-between group transition-colors cursor-pointer",
+                      theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
+                      focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
                     )}
-                    <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", theme === "light" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-green-500/10 text-green-500 border-green-500/20")}>{project.status}</span>
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }} className={cn("p-2 transition-colors", theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500")}>
-                      <Trash2 size={16} />
-                    </motion.button>
-                  </div>
-                </motion.div>
-              );
-            })
-          ) : (
-            <div className="p-12 text-center">
-              <p className={cn("text-sm", theme === "light" ? "text-slate-500" : "text-neutral-500")}>No resources found. Add your first project.</p>
-            </div>
-          )}
-        </div>
-      </motion.div>
-
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
+                        {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
+                          {focusedProjectId === project.id && (
+                            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
+                          <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
+                          {focusedProjectId === project.id ? (
+                            <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
+                              <ShieldCheck size={12} />
+                              {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {scan && (
+                        <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
+                        className={cn("p-2 transition-colors", theme === "light" ? "text-indigo-400 hover:text-indigo-600" : "text-indigo-500/70 hover:text-indigo-500")}
+                        title="Rescan"
+                      >
+                        <RotateCw size={14} />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
+                        className={cn("p-2 transition-colors", theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500")}
+                      >
+                        <Trash2 size={14} />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="p-12 text-center">
+                <p className={cn("text-sm", theme === "light" ? "text-slate-400" : "text-neutral-500")}>No resources found. Add your first project.</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
     </>
   );
 }
@@ -252,13 +266,13 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
   };
 
   if (!projectId) return (
-    <div className="flex items-center justify-center p-12 bg-neutral-900/50 rounded-3xl border border-white/5">
-      <p className="text-neutral-500 text-sm">No project selected. Focus a project from Overview first.</p>
+    <div className={cn("flex items-center justify-center p-12 rounded-3xl border", theme === "light" ? "bg-white border-slate-200/80" : "bg-neutral-900/50 border-white/5")}>
+      <p className={cn("text-sm", theme === "light" ? "text-slate-400" : "text-neutral-500")}>No project selected. Focus a project from Overview first.</p>
     </div>
   );
 
   if (loading && !scanData) return (
-    <div className="flex items-center justify-center p-12 bg-neutral-900/50 rounded-3xl border border-white/5">
+    <div className={cn("flex items-center justify-center p-12 rounded-3xl border", theme === "light" ? "bg-white border-slate-200/80" : "bg-neutral-900/50 border-white/5")}>
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
     </div>
   );
@@ -269,13 +283,13 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
   const scanError = scanData?.status === "error" ? (scanData?.error || "Scan failed") : null;
 
   return (
-    <div className={cn("space-y-8", theme === "light" ? "text-slate-900" : "text-white")}>
+    <div className={cn("space-y-8", theme === "light" ? "text-slate-800" : "text-white")}>
       {scanError && (
         <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-start gap-3">
           <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-bold text-yellow-500">Scan Failed</p>
-            <p className="text-xs text-neutral-400 mt-1">{scanError}. Add a GITHUB_TOKEN to your backend .env file to fix rate limiting.</p>
+            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-400")}>{scanError}. Add a GITHUB_TOKEN to your backend .env file to fix rate limiting.</p>
           </div>
         </div>
       )}
@@ -305,7 +319,7 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
       )}
 
       {/* Files with Issues */}
-      <div className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}>
+      <div className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}>
         <div className={cn("p-6 border-b", theme === "light" ? "border-slate-200" : "border-white/5")}>
           <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-900" : "text-white")}>
             <AlertTriangle size={18} className="text-red-500" />
@@ -357,7 +371,7 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
                       </div>
                       {issue.match && (
                         <p className="text-xs text-neutral-400 font-mono truncate">
-                          Found: <span className="text-neutral-300">{issue.match}</span>
+                          Found: <span className={cn(theme === "light" ? "text-slate-700" : "text-neutral-300")}>{issue.match}</span>
                         </p>
                       )}
                       {issue.remediation && (
@@ -439,7 +453,7 @@ function ReviewsView({ theme, userEmail }: { theme: string; userEmail: string })
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cn("border rounded-3xl p-8", theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900/50 border-white/5")}
+        className={cn("border rounded-3xl p-8", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}
       >
         <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
           <Star size={20} className="text-yellow-500" />
@@ -471,9 +485,9 @@ function ReviewsView({ theme, userEmail }: { theme: string; userEmail: string })
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className={cn(
-              "w-full px-4 py-3 rounded-xl border text-sm outline-none transition-colors",
+              "w-full px-4 py-3 rounded-xl border text-sm outline-none transition-colors focus:border-indigo-400",
               theme === "light"
-                ? "bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400"
+                ? "bg-white border-slate-200/60 text-slate-700 placeholder:text-slate-400"
                 : "bg-white/5 border-white/10 text-white placeholder:text-neutral-600"
             )}
           />
@@ -601,7 +615,7 @@ function MetricsChart({ data, colors }: { data: any[]; colors: any }) {
 }
 
 
-function InfrastructureView({ projectId }: { projectId?: number }) {
+function InfrastructureView({ projectId, theme }: { projectId?: number; theme?: string }) {
   const [infrastructure, setInfrastructure] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -620,13 +634,13 @@ function InfrastructureView({ projectId }: { projectId?: number }) {
   }, [projectId]);
 
   if (loading) return (
-    <div className="text-white p-8 bg-neutral-900/50 rounded-3xl border border-white/5">
+    <div className={cn("p-8 rounded-3xl border", theme === "light" ? "bg-white border-slate-200/80" : "bg-neutral-900/50 border-white/5")}>
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
     </div>
   );
 
   return (
-    <div className="text-white p-8 bg-neutral-900/50 rounded-3xl border border-white/5 space-y-6">
+    <div className={cn("p-8 rounded-3xl border space-y-6", theme === "light" ? "bg-white border-slate-200/80 text-slate-800 shadow-sm" : "bg-neutral-900/50 border-white/5 text-white")}>
       <h2 className="text-xl font-bold flex items-center gap-2">
         <Server size={20} className="text-indigo-500" />
         Infrastructure Clusters
@@ -634,16 +648,16 @@ function InfrastructureView({ projectId }: { projectId?: number }) {
       {infrastructure.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {infrastructure.map((cluster: any) => (
-            <div key={cluster.id} className="p-6 bg-white/5 rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all group">
+            <div key={cluster.id} className={cn("p-6 rounded-2xl border hover:border-indigo-500/30 transition-all group", theme === "light" ? "bg-slate-50 border-slate-200/60" : "bg-white/5 border-white/5")}>
               <div className="flex justify-between items-start mb-4">
-                <h3 className="font-bold text-lg">{cluster.name}</h3>
+                <h3 className={cn("font-bold text-lg", theme === "light" ? "text-slate-800" : "text-white")}>{cluster.name}</h3>
                 <span className={cn("px-2 py-1 rounded text-[10px] font-bold uppercase", 
                   cluster.status === "Healthy" ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
                 )}>{cluster.status}</span>
               </div>
-              <div className="space-y-2 text-sm text-neutral-400">
-                <p>Region: <span className="text-white">{cluster.region}</span></p>
-                <p>Nodes: <span className="text-white">{cluster.nodes}</span></p>
+              <div className={cn("space-y-2 text-sm", theme === "light" ? "text-slate-500" : "text-neutral-400")}>
+                <p>Region: <span className={cn("font-semibold", theme === "light" ? "text-slate-700" : "text-white")}>{cluster.region}</span></p>
+                <p>Nodes: <span className={cn("font-semibold", theme === "light" ? "text-slate-700" : "text-white")}>{cluster.nodes}</span></p>
               </div>
             </div>
           ))}
@@ -657,7 +671,7 @@ function InfrastructureView({ projectId }: { projectId?: number }) {
   );
 }
 
-function DatabasesView({ projectId }: { projectId?: number }) {
+function DatabasesView({ projectId, theme }: { projectId?: number; theme?: string }) {
   const [databases, setDatabases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -676,13 +690,13 @@ function DatabasesView({ projectId }: { projectId?: number }) {
   }, [projectId]);
 
   if (loading) return (
-    <div className="text-white p-8 bg-neutral-900/50 rounded-3xl border border-white/5">
+    <div className={cn("p-8 rounded-3xl border", theme === "light" ? "bg-white border-slate-200/80" : "bg-neutral-900/50 border-white/5")}>
       <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
     </div>
   );
 
   return (
-    <div className="text-white p-8 bg-neutral-900/50 rounded-3xl border border-white/5 space-y-6">
+    <div className={cn("p-8 rounded-3xl border space-y-6", theme === "light" ? "bg-white border-slate-200/80 text-slate-800 shadow-sm" : "bg-neutral-900/50 border-white/5 text-white")}>
       <h2 className="text-xl font-bold flex items-center gap-2">
         <Database size={20} className="text-indigo-500" />
         Database Instances
@@ -690,13 +704,13 @@ function DatabasesView({ projectId }: { projectId?: number }) {
       {databases.length > 0 ? (
         <div className="space-y-4">
           {databases.map((db: any) => (
-            <div key={db.id} className="p-6 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div key={db.id} className={cn("p-6 rounded-2xl border flex items-center justify-between", theme === "light" ? "bg-slate-50 border-slate-200/60" : "bg-white/5 border-white/5")}>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
                   <Database size={24} />
                 </div>
                 <div>
-                  <h3 className="font-bold">{db.name}</h3>
+                  <h3 className={cn("font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{db.name}</h3>
                   <p className="text-xs text-neutral-500">{db.type} • {db.size}</p>
                 </div>
               </div>
@@ -796,8 +810,8 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
     <div className="max-w-4xl space-y-8">
       {/* Manage Projects */}
       <div className={cn(
-        "border rounded-3xl p-8 transition-colors duration-300",
-        theme === "light" ? "bg-white border-slate-200 shadow-sm" : "bg-neutral-900/50 border-white/5"
+        "border rounded-3xl p-8 transition-all duration-500",
+        theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
       )}>
         <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
           <Server size={20} className="text-indigo-500" />
@@ -807,7 +821,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
           {projects.length > 0 ? projects.map((p: Project) => (
             <div key={p.id} className={cn(
               "flex items-center justify-between p-4 rounded-2xl border",
-              theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5"
+              theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
             )}>
               <div>
                 <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>{p.name}</p>
@@ -839,34 +853,34 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
               </motion.button>
             </div>
           )) : (
-            <p className="text-sm text-neutral-500 text-center py-4">No projects found.</p>
+            <p className={cn("text-sm text-center py-4", theme === "light" ? "text-slate-400" : "text-neutral-500")}>No projects found.</p>
           )}
         </div>
       </div>
 
       <div className={cn(
-        "border rounded-3xl p-8 transition-colors duration-300",
-        theme === "light" ? "bg-white border-slate-200 shadow-sm" : "bg-neutral-900/50 border-white/5"
+        "border rounded-3xl p-8 transition-all duration-500",
+        theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
       )}>
         <h2 className={cn("text-xl font-bold mb-6", theme === "light" ? "text-slate-800" : "text-white")}>General Settings</h2>
         <div className="space-y-4">
           <div className={cn(
-            "flex items-center justify-between p-4 rounded-2xl border transition-colors duration-300",
-            theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5"
+            "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+            theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
             <div>
               <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>Email Notifications</p>
-              <p className="text-xs text-neutral-500">Receive alerts via email when incidents occur.</p>
+              <p className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Receive alerts via email when incidents occur.</p>
             </div>
             <input type="checkbox" checked={settings.notifications} onChange={(e) => updateSetting("notifications", e.target.checked)} className="accent-indigo-500 h-5 w-5" />
           </div>
           <div className={cn(
-            "flex items-center justify-between p-4 rounded-2xl border transition-colors duration-300",
-            theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5"
+            "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+            theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
             <div>
               <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>Theme Preference</p>
-              <p className="text-xs text-neutral-500">Switch between dark and light interface.</p>
+              <p className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Switch between dark and light interface.</p>
             </div>
             <select 
               value={settings.theme} 
@@ -886,18 +900,18 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
 
 
       <div className={cn(
-        "border rounded-3xl p-8 transition-colors duration-300",
-        theme === "light" ? "bg-white border-red-200 shadow-sm" : "bg-neutral-900/50 border-white/5 border-red-500/20"
+        "border rounded-3xl p-8 transition-all duration-500",
+        theme === "light" ? "bg-white border-red-200/60 shadow-sm" : "bg-neutral-900/50 border-white/5 border-red-500/20"
       )}>
-        <h2 className="text-xl font-bold mb-2 text-red-500">Danger Zone</h2>
-        <p className="text-xs text-neutral-500 mb-6">Irreversible actions for system maintenance.</p>
+        <h2 className={cn("text-xl font-bold mb-2 text-red-500", theme === "light" ? "text-red-600" : "text-red-500")}>Danger Zone</h2>
+        <p className={cn("text-xs mb-6", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Irreversible actions for system maintenance.</p>
         <div className={cn(
           "p-6 rounded-2xl border flex items-center justify-between transition-colors duration-300",
-          theme === "light" ? "bg-red-50 border-red-100" : "bg-red-500/5 border-red-500/10"
+          theme === "light" ? "bg-red-50/80 border-red-100" : "bg-red-500/5 border-red-500/10"
         )}>
           <div>
             <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>Reset System Database</p>
-            <p className="text-xs text-neutral-500">Delete all projects, logs, and AI history to start fresh.</p>
+            <p className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Delete all projects, logs, and AI history to start fresh.</p>
           </div>
           {showResetConfirm && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -1230,8 +1244,8 @@ export default function DashboardPage() {
 
   return (
     <div className={cn(
-      "flex h-screen overflow-hidden transition-colors duration-300",
-      theme === "light" ? "bg-slate-50 text-slate-900" : "bg-neutral-950 text-white"
+      "flex h-screen overflow-hidden transition-colors duration-500",
+      theme === "light" ? "bg-gradient-to-br from-slate-50 to-blue-50/40 text-slate-800" : "bg-neutral-950 text-white"
     )}>
       {/* Mobile menu button */}
       <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} className="fixed top-4 left-4 z-50 lg:hidden p-2 bg-neutral-900 border border-white/10 rounded-xl text-white">
@@ -1239,8 +1253,8 @@ export default function DashboardPage() {
       </button>
 
       <aside className={cn(
-        "w-64 border-r flex flex-col backdrop-blur-xl transition-all duration-300",
-        theme === "light" ? "bg-white/70 border-slate-200" : "bg-neutral-900/50 border-white/5",
+        "w-64 border-r flex flex-col backdrop-blur-xl transition-all duration-500",
+        theme === "light" ? "bg-white/90 border-slate-200/60 shadow-sm" : "bg-neutral-900/50 border-white/5",
         "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-40 max-lg:shadow-2xl",
         mobileSidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
       )}>
@@ -1249,7 +1263,7 @@ export default function DashboardPage() {
             <Activity className="w-5 h-5 text-white" />
           </div>
           <span className={cn("text-lg font-bold tracking-tight", theme === "light" ? "text-slate-800" : "text-white")}>
-            InfraDoctor<span className="text-indigo-500">AI</span>
+            <span className={theme === "light" ? "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" : ""}>InfraDoctor</span><span className="text-indigo-500">AI</span>
           </span>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
@@ -1269,12 +1283,12 @@ export default function DashboardPage() {
 
         <main className="flex-1 flex flex-col overflow-hidden">
         <header className={cn(
-          "h-16 border-b flex items-center justify-between px-4 sm:px-8 backdrop-blur-md sticky top-0 z-10 transition-colors duration-300",
-          theme === "light" ? "bg-white/50 border-slate-200" : "bg-neutral-950/50 border-white/5"
+          "h-16 border-b flex items-center justify-between px-4 sm:px-8 backdrop-blur-md sticky top-0 z-10 transition-colors duration-500",
+          theme === "light" ? "bg-white/70 border-slate-200/60" : "bg-neutral-950/50 border-white/5"
         )}>
           <div className={cn(
-            "hidden sm:flex items-center gap-4 px-4 py-2 rounded-xl border w-48 lg:w-96 transition-colors duration-300",
-            theme === "light" ? "bg-slate-100 border-slate-200 text-slate-800" : "bg-white/5 border-white/5 text-white"
+            "hidden sm:flex items-center gap-4 px-4 py-2 rounded-xl border w-48 lg:w-96 transition-all duration-300",
+            theme === "light" ? "bg-slate-100/80 border-slate-200/50 text-slate-800 focus-within:border-indigo-400 focus-within:shadow-sm" : "bg-white/5 border-white/5 text-white"
           )}>
             <Search size={18} className="text-neutral-500 shrink-0" />
             <input 
@@ -1282,7 +1296,7 @@ export default function DashboardPage() {
               placeholder="Search..." 
               className={cn(
                 "bg-transparent border-none outline-none text-sm w-full transition-colors duration-300",
-                theme === "light" ? "text-slate-800 placeholder:text-slate-400" : "text-neutral-300 placeholder:text-neutral-600"
+                theme === "light" ? "text-slate-700 placeholder:text-slate-400" : "text-neutral-300 placeholder:text-neutral-600"
               )}
             />
           </div>
@@ -1301,8 +1315,8 @@ export default function DashboardPage() {
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
               whileHover={{ scale: 1.02 }}
               className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-xl border transition-colors relative overflow-hidden group",
-                theme === "light" ? "bg-gradient-to-r from-slate-100 to-slate-50 border-slate-200" : "bg-gradient-to-r from-white/5 to-white/[0.02] border-white/5"
+                "flex items-center gap-3 px-4 py-2 rounded-xl border transition-all relative overflow-hidden group",
+                theme === "light" ? "bg-gradient-to-r from-white to-slate-50/80 border-slate-200/60 shadow-sm" : "bg-gradient-to-r from-white/5 to-white/[0.02] border-white/5"
               )}
             >
               {/* Animated glow */}
@@ -1346,8 +1360,8 @@ export default function DashboardPage() {
             </div>
           )}
           {activeView === "Overview" && <OverviewView projects={projects} alerts={alerts} setShowAddModal={setShowAddModal} deleteProject={deleteProject} metrics={metrics} theme={theme} focusedProjectId={focusedProjectId} setFocus={setFocus} viewProjectScan={viewProjectScan} triggerScan={triggerScan} deletingId={deletingId} setDeletingId={setDeletingId} />}
-          {activeView === "Infrastructure" && <InfrastructureView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} />}
-          {activeView === "Databases" && <DatabasesView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} />}
+          {activeView === "Infrastructure" && <InfrastructureView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} theme={theme} />}
+          {activeView === "Databases" && <DatabasesView projectId={focusedProjectId || (projects.length > 0 ? projects[0].id : undefined)} theme={theme} />}
           {activeView === "Security" && <SecurityView projects={projects} focusedProjectId={focusedProjectId} theme={theme} />}
           {activeView === "Reviews" && <ReviewsView theme={theme} userEmail={userName} />}
           {activeView === "Settings" && <SettingsView theme={theme} setTheme={handleThemeChange} focusedProjectId={focusedProjectId} setFocusedProjectId={setFocusedProjectId} setProjects={setProjects} setAlerts={setAlerts} fetchData={fetchData} projects={projects} deletingId={deletingId} setDeletingId={setDeletingId} />}
@@ -1359,8 +1373,8 @@ export default function DashboardPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!scanning) setShowAddModal(false); }} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className={cn(
-              "relative w-full max-w-lg border rounded-3xl p-8 shadow-2xl transition-colors duration-300 overflow-hidden",
-              theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900 border-white/10"
+              "relative w-full max-w-lg border rounded-3xl p-8 shadow-2xl transition-all duration-500 overflow-hidden",
+              theme === "light" ? "bg-white border-slate-200/80 shadow-xl" : "bg-neutral-900 border-white/10"
             )}>
               {scanning ? (
                 <div className="flex flex-col items-center justify-center py-12">
@@ -1405,7 +1419,7 @@ export default function DashboardPage() {
                 <>
                   <div className="flex items-center justify-between mb-8">
                     <h2 className={cn("text-2xl font-bold tracking-tight", theme === "light" ? "text-slate-800" : "text-white")}>Add New Resource</h2>
-                    <button onClick={() => setShowAddModal(false)} className={cn("p-2 transition-colors", theme === "light" ? "text-slate-400 hover:text-slate-800" : "text-neutral-500 hover:text-white")}><X size={20} /></button>
+                    <button onClick={() => setShowAddModal(false)} className={cn("p-2 rounded-xl transition-colors", theme === "light" ? "text-slate-400 hover:text-slate-800 hover:bg-slate-100" : "text-neutral-500 hover:text-white hover:bg-white/5")}><X size={20} /></button>
                   </div>
                   <form onSubmit={handleAddProject} className="space-y-6">
                     <div className="space-y-2">
@@ -1413,11 +1427,11 @@ export default function DashboardPage() {
                       <input 
                         required 
                         type="text" 
-                        className={cn(
-                          "w-full border rounded-2xl py-4 px-5 outline-none focus:border-indigo-500/50 transition-all text-sm",
-                          theme === "light" ? "bg-slate-50 border-slate-200 text-slate-800" : "bg-neutral-950 border-white/5 text-white"
-                        )}
-                        value={newProject.name} 
+                      className={cn(
+                        "w-full border rounded-2xl py-4 px-5 outline-none focus:border-indigo-500/50 transition-all text-sm",
+                        theme === "light" ? "bg-white border-slate-200/60 text-slate-800 placeholder:text-slate-400" : "bg-neutral-950 border-white/5 text-white"
+                      )}
+                      value={newProject.name}
                         onChange={(e) => setNewProject({...newProject, name: e.target.value})} 
                       />
                     </div>
@@ -1473,7 +1487,7 @@ export default function DashboardPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowScanModal(false)} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className={cn(
               "relative w-full max-w-3xl max-h-[85vh] overflow-y-auto border rounded-3xl p-8 shadow-2xl",
-              theme === "light" ? "bg-white border-slate-200" : "bg-neutral-900 border-white/10"
+              theme === "light" ? "bg-white border-slate-200/80 shadow-xl" : "bg-neutral-900 border-white/10"
             )}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className={cn("text-2xl font-bold tracking-tight flex items-center gap-3", theme === "light" ? "text-slate-800" : "text-white")}>
@@ -1503,7 +1517,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, delay: i * 0.08 }}
                     whileHover={{ scale: 1.03 }}
-                    className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/5")}
+                    className={cn("p-4 rounded-2xl border", theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5")}
                   >
                     <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1">{stat.label}</p>
                     <p className={cn("text-2xl font-bold", stat.color)}>{stat.value}</p>
@@ -1523,7 +1537,7 @@ export default function DashboardPage() {
                     {scanResult.files.filter((f: any) => f.issue_count > 0).map((file: any, idx: number) => (
                       <div key={idx} className={cn(
                         "p-4 rounded-2xl border flex items-start justify-between",
-                        theme === "light" ? "bg-red-50 border-red-100" : "bg-red-500/5 border-red-500/10"
+                        theme === "light" ? "bg-red-50/80 border-red-100" : "bg-red-500/5 border-red-500/10"
                       )}>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold truncate">{file.path}</p>
@@ -1574,7 +1588,7 @@ export default function DashboardPage() {
                     {scanResult.large_files.map((lf: any, idx: number) => (
                       <div key={idx} className={cn(
                         "p-3 rounded-2xl border flex items-center justify-between",
-                        theme === "light" ? "bg-yellow-50 border-yellow-100" : "bg-yellow-500/5 border-yellow-500/10"
+                        theme === "light" ? "bg-yellow-50/80 border-yellow-100" : "bg-yellow-500/5 border-yellow-500/10"
                       )}>
                         <p className="text-sm font-medium truncate">{lf.path}</p>
                         <span className="text-xs font-bold text-neutral-500 ml-2 shrink-0">{lf.size_hr || "500+ KB"}</span>
@@ -1595,7 +1609,7 @@ export default function DashboardPage() {
                     {scanResult.sensitive_files.map((sf: string, idx: number) => (
                       <div key={idx} className={cn(
                         "p-3 rounded-2xl border flex items-center justify-between",
-                        theme === "light" ? "bg-red-50 border-red-100" : "bg-red-500/5 border-red-500/10"
+                        theme === "light" ? "bg-red-50/80 border-red-100" : "bg-red-500/5 border-red-500/10"
                       )}>
                         <p className="text-sm font-mono truncate">{sf}</p>
                         <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-500 ml-2 shrink-0">Sensitive</span>
@@ -1610,7 +1624,7 @@ export default function DashboardPage() {
                 <div className="p-12 text-center">
                   <ShieldCheck size={48} className="mx-auto text-green-500 mb-4" />
                   <p className={cn("text-lg font-bold", theme === "light" ? "text-slate-800" : "text-white")}>No Security Issues Found</p>
-                  <p className="text-sm text-neutral-500 mt-2">Your project looks clean. {scanResult.total_files || 0} files scanned.</p>
+                  <p className={cn("text-sm mt-2", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Your project looks clean. {scanResult.total_files || 0} files scanned.</p>
                 </div>
               )}
 
@@ -1662,9 +1676,9 @@ function StatCard({ label, value, trend, color = "indigo", theme }: { label: str
   const trendColors: any = { green: "text-green-500", red: "text-red-500", yellow: "text-yellow-500", indigo: "text-indigo-500" };
   return (
     <div className={cn(
-      "border p-6 rounded-3xl transition-all duration-300",
+      "border p-6 rounded-3xl transition-all duration-500",
       theme === "light" 
-        ? "bg-white border-slate-200 shadow-sm hover:border-indigo-200" 
+        ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" 
         : "bg-neutral-900/50 border-white/5 hover:border-white/10"
     )}>
       <p className={cn("text-xs font-medium uppercase tracking-wider mb-2", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{label}</p>
@@ -1684,8 +1698,8 @@ function IncidentRow({ title, time, status, owner, theme }: { title: string, tim
   };
   return (
     <div className={cn(
-      "p-6 flex items-center justify-between transition-colors group",
-      theme === "light" ? "hover:bg-slate-50 border-slate-100" : "hover:bg-white/5 border-white/5"
+      "p-6 flex items-center justify-between transition-colors group border-b",
+      theme === "light" ? "hover:bg-slate-50/60 border-slate-100" : "hover:bg-white/5 border-white/5"
     )}>
       <div className="flex items-center gap-4">
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border", statusConfig[status])}>
