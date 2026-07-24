@@ -65,28 +65,20 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
   const [scores, setScores] = useState<any[]>([]);
   const activeProject = Array.isArray(projects) ? projects.find((p: Project) => p.id === focusedProjectId) : undefined;
   const activeScan = activeProject?.scan;
-  const allScans = Array.isArray(projects) ? projects.map((p: Project) => p.scan).filter(Boolean) : [];
-  const projectId = focusedProjectId || (projects.length > 0 ? projects[0].id : null);
+  const projectId = focusedProjectId;
   useEffect(() => {
     if (!projectId) return;
     const token = localStorage.getItem("token");
     fetch(`${API_BASE}/projects/${projectId}/scores`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.ok ? r.json() : null).then(d => d?.scores && setScores(d.scores)).catch(() => {});
   }, [projectId]);
-  const totalFiles = allScans.reduce((sum: number, s: any) => sum + (s.total_files || 0), 0);
-  const totalIssues = allScans.reduce((sum: number, s: any) => sum + (s.issues_found || 0), 0);
-  const totalBytes = allScans.reduce((sum: number, s: any) => {
-    const match = s.total_size_hr?.match(/^([\d.]+)\s*(B|KB|MB|GB|TB)$/);
-    if (!match) return sum;
-    const val = parseFloat(match[1]);
-    const units: any = { B: 1, KB: 1024, MB: 1024**2, GB: 1024**3, TB: 1024**4 };
-    return sum + val * (units[match[2]] || 1);
-  }, 0);
-  const aggSize = totalBytes > 0 ? formatBytes(totalBytes) : (activeScan?.total_size_hr || "0 B");
-  const avgScore = allScans.length > 0 ? Math.round(allScans.reduce((sum: number, s: any) => sum + (s.score || 0), 0) / allScans.length) : null;
-  const displayScore = activeScan ? `${activeScan.score}%` : (avgScore !== null ? `${avgScore}% (avg)` : "N/A");
-  const displayTrend = activeScan ? (activeScan.score >= 80 ? "Secure" : "Review") : (avgScore !== null ? (avgScore >= 80 ? "Secure" : "Review") : "No Data");
-  const displayColor = activeScan ? (activeScan.score >= 80 ? "green" : "red") : (avgScore !== null ? (avgScore >= 80 ? "green" : "red") : "red");
+  const totalFiles = activeScan?.total_files || 0;
+  const totalIssues = activeScan?.issues_found || 0;
+  const aggSize = activeScan?.total_size_hr || "—";
+  const displayScore = activeScan ? `${activeScan.score}%` : "—";
+  const displayColor = activeScan ? (activeScan.score >= 80 ? "green" : "red") : "neutral";
+  const noFocus = !focusedProjectId;
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
@@ -106,48 +98,60 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : "text-red-500", size: "text-4xl" },
-          { value: activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0), label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
-          { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
-          { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            className={cn("p-6 rounded-3xl border transition-all", theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
-          >
-            <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
-            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Repo Details & Description */}
-      {activeProject && (
+      {/* Stats Cards - only show when project is active */}
+      {noFocus ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-6 py-4 rounded-2xl border", theme === "light" ? "bg-white/60 border-slate-200/60" : "bg-white/5 border-white/5")}
+          className={cn("p-12 rounded-3xl border text-center mb-6", theme === "light" ? "bg-white border-slate-200/80" : "bg-neutral-900/50 border-white/5")}
         >
-          <span className={cn("text-xs flex items-center gap-1.5", theme === "light" ? "text-slate-600" : "text-neutral-400")}>
-            <span className="font-bold text-indigo-500">{activeProject.name}</span>
-            <span className={theme === "light" ? "text-slate-300" : "text-neutral-700"}>•</span>
-            Environment: <span className="font-semibold text-indigo-500">{activeProject.environment}</span>
-          </span>
-          {activeProject.github_url && (
-            <a href={activeProject.github_url} target="_blank" rel="noopener noreferrer" className={cn("text-xs flex items-center gap-1.5 hover:text-indigo-500 transition-colors underline underline-offset-2 decoration-dotted", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
-              <GitBranch size={12} />
-              {activeProject.github_url.replace("https://github.com/", "")}
-            </a>
-          )}
-          <span className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-600")}>Real-time health status of your infrastructure clusters.</span>
+          <p className={cn("text-sm", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Select a resource from the list below to view its health status and scan results.</p>
         </motion.div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[
+              { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : displayColor === "red" ? "text-red-500" : "text-neutral-400", size: "text-4xl" },
+              { value: totalFiles, label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
+              { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+              { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                className={cn("p-6 rounded-3xl border transition-all", theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
+              >
+                <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
+                <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Repo Details & Description */}
+          {activeProject && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-6 py-4 rounded-2xl border", theme === "light" ? "bg-white/60 border-slate-200/60" : "bg-white/5 border-white/5")}
+            >
+              <span className={cn("text-xs flex items-center gap-1.5", theme === "light" ? "text-slate-600" : "text-neutral-400")}>
+                <span className="font-bold text-indigo-500">{activeProject.name}</span>
+                <span className={theme === "light" ? "text-slate-300" : "text-neutral-700"}>•</span>
+                Environment: <span className="font-semibold text-indigo-500">{activeProject.environment}</span>
+              </span>
+              {activeProject.github_url && (
+                <a href={activeProject.github_url} target="_blank" rel="noopener noreferrer" className={cn("text-xs flex items-center gap-1.5 hover:text-indigo-500 transition-colors underline underline-offset-2 decoration-dotted", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
+                  <GitBranch size={12} />
+                  {activeProject.github_url.replace("https://github.com/", "")}
+                </a>
+              )}
+              <span className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-600")}>Click a resource below to switch focus.</span>
+            </motion.div>
+          )}
+        </>
       )}
 
       {/* Active Resources */}
