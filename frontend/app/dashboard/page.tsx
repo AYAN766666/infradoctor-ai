@@ -1061,30 +1061,39 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
           </div>
         )}
 
-        <div className={cn(
-          "flex items-center gap-3 p-4 rounded-2xl border",
-          theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
-        )}>
-          <input
-            readOnly
-            value={`https://infradoctor-backend.vercel.app/webhooks/github`}
-            onClick={(e) => { (e.target as HTMLInputElement).select(); navigator.clipboard.writeText((e.target as HTMLInputElement).value); toast.success("Copied!"); }}
-            className={cn(
-              "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none cursor-pointer",
-              theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
-            )}
-          />
-          <span className={cn(
-            "text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shrink-0",
-            focusedProject?.webhook_active ? "text-green-500" : "text-neutral-500"
+        {focusedProject && focusedProject.webhook_active && focusedProject.webhook_id ? (
+          <div className={cn(
+            "flex items-center gap-3 p-4 rounded-2xl border",
+            theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
-            <span className={cn("w-2 h-2 rounded-full", focusedProject?.webhook_active ? "bg-green-500" : "bg-neutral-500")} />
-            {focusedProject?.webhook_active ? "Active" : "Inactive"}
-          </span>
-        </div>
-        <p className={cn("text-[10px] mt-3", theme === "light" ? "text-slate-400" : "text-neutral-600")}>
-          URL for external use. InfraDoctor now auto-creates webhooks when you add a repo — no manual setup needed.
-        </p>
+            <input
+              readOnly
+              value={(() => { try { const u = new URL(focusedProject.github_url); const p = u.pathname.replace(/\.git$/, '').replace(/\/$/, '').split('/'); return `https://github.com/${p[1]}/${p[2]}/settings/hooks/${focusedProject.webhook_id}`; } catch { return focusedProject.github_url; } })()}
+              onClick={(e) => { (e.target as HTMLInputElement).select(); navigator.clipboard.writeText((e.target as HTMLInputElement).value); toast.success("Copied!"); }}
+              className={cn(
+                "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none cursor-pointer",
+                theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
+              )}
+            />
+            <a href={(() => { try { const u = new URL(focusedProject.github_url); const p = u.pathname.replace(/\.git$/, '').replace(/\/$/, '').split('/'); return `https://github.com/${p[1]}/${p[2]}/settings/hooks/${focusedProject.webhook_id}`; } catch { return focusedProject.github_url; } })()} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 flex items-center gap-1 shrink-0 hover:underline">
+              <ExternalLink size={12} /> View on GitHub
+            </a>
+          </div>
+        ) : (
+          <div className={cn(
+            "flex items-center gap-3 p-4 rounded-2xl border",
+            theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
+          )}>
+            <input
+              readOnly
+              value="https://infradoctor-backend.vercel.app/webhooks/github"
+              className={cn(
+                "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none",
+                theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
+              )}
+            />
+          </div>
+        )}
       </div>
 
       <div className={cn(
