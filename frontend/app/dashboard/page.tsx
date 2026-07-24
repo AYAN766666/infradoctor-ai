@@ -448,14 +448,19 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
                             )}>
                               {issue.type}
                             </span>
-                            <span className={cn(
-                              "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
-                              issue.severity === "critical" ? "bg-red-500/20 text-red-500" :
-                              issue.severity === "high" ? "bg-amber-500/20 text-amber-500" :
-                              "bg-yellow-500/20 text-yellow-500"
-                            )}>
-                              {issue.severity}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              {issue.line != null && (
+                                <span className="text-[10px] font-mono text-neutral-500">L:{issue.line}</span>
+                              )}
+                              <span className={cn(
+                                "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
+                                issue.severity === "critical" ? "bg-red-500/20 text-red-500" :
+                                issue.severity === "high" ? "bg-amber-500/20 text-amber-500" :
+                                "bg-yellow-500/20 text-yellow-500"
+                              )}>
+                                {issue.severity}
+                              </span>
+                            </div>
                           </div>
                           {issue.match && (
                             <p className="text-xs text-neutral-400 font-mono truncate">

@@ -199,15 +199,17 @@ def check_content_for_secrets(content: str, filename: str):
     if not content:
         return findings
     for pattern, label in SENSITIVE_PATTERNS:
-        matches = re.findall(pattern, content)
-        for match in matches:
+        for match_obj in re.finditer(pattern, content):
+            match = match_obj.group()
             if is_false_positive(match[:40], label):
                 continue
+            line_num = content[:match_obj.start()].count("\n") + 1
             masked = match[:20] + "****" if len(match) > 24 else match
             findings.append({
                 "type": label,
                 "match": masked,
                 "file": filename,
+                "line": line_num,
                 "severity": "critical" if "key" in label.lower() or "token" in label.lower() or "secret" in label.lower() or "private" in label.lower() else "high",
                 "remediation": get_remediation(label),
             })
@@ -232,6 +234,8 @@ If nothing found, return empty array [].
         )
         result = json.loads(response['message']['content'])
         if isinstance(result, list):
+            for item in result:
+                item.setdefault("line", None)
             return result
         return []
     except Exception as e:
