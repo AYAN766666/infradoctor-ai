@@ -185,53 +185,55 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                     focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
-                      {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
-                        {focusedProjectId === project.id && (
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
-                        )}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
+                        {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
-                        <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
-                        {focusedProjectId === project.id ? (
-                          <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
-                            <ShieldCheck size={12} />
-                            {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
-                        )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
+                          {focusedProjectId === project.id ? (
+                            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
+                          ) : (
+                            <span className="text-[9px] uppercase tracking-widest text-neutral-500 shrink-0">click to activate</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
+                          <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
+                          {focusedProjectId === project.id ? (
+                            <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
+                              <ShieldCheck size={12} />
+                              {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {scan && (
-                      <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
-                    )}
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
-                      className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
-                      title="Rescan"
-                    >
-                      <RotateCw size={14} />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
-                      className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
-                    >
-                      <Trash2 size={14} />
-                    </motion.button>
-                  </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {scan && focusedProjectId === project.id && (
+                        <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
+                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
+                        title="Rescan"
+                      >
+                        <RotateCw size={14} />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
+                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
+                      >
+                        <Trash2 size={14} />
+                      </motion.button>
+                    </div>
                 </motion.div>
               );
             })
@@ -1121,12 +1123,15 @@ export default function DashboardPage() {
         const focusRes = await fetch(`${API_BASE}/settings/focus`, { headers: authHeaders() });
         if (focusRes.ok) {
           const f = await focusRes.json();
-          if (f.project_id) setFocusedProjectId(f.project_id);
+          if (f.project_id) {
+            setFocusedProjectId(f.project_id);
+          } else {
+            setFocusedProjectId(null);
+          }
         }
       } catch (e) {}
-      if (pList.length > 0) {
-        const pid = focusedProjectId || pList[0].id;
-        fetchAlerts(pid);
+      if (focusedProjectId) {
+        fetchAlerts(focusedProjectId);
         fetchMetrics();
       }
     } catch (err: any) {
@@ -1162,6 +1167,10 @@ export default function DashboardPage() {
   };
 
   const setFocus = async (projectId: number) => {
+    if (focusedProjectId === projectId) {
+      await clearFocus();
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/settings/focus`, {
         method: 'POST',
@@ -1174,6 +1183,17 @@ export default function DashboardPage() {
         fetchMetrics();
       }
     } catch (e) { console.error('Failed to set focus', e); }
+  };
+
+  const clearFocus = async () => {
+    try {
+      await fetch(`${API_BASE}/settings/focus`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: null })
+      });
+    } catch (e) {}
+    setFocusedProjectId(null);
   };
 
   const deleteProject = async (id: number) => {
