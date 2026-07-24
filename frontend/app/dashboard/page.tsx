@@ -89,7 +89,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
   const displayColor = activeScan ? (activeScan.score >= 80 ? "green" : "red") : (avgScore !== null ? (avgScore >= 80 ? "green" : "red") : "red");
   return (
     <>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className={cn("text-2xl font-bold tracking-tight", theme === "light" ? "text-slate-900" : "text-white")}>System Overview</h1>
@@ -99,16 +99,6 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
               </span>
             )}
           </div>
-          {activeProject && (
-            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-600" : "text-neutral-400")}>Active: <span className="font-bold">{activeProject.name}</span> • Environment: <span className="font-semibold text-indigo-500">{activeProject.environment}</span></p>
-          )}
-          {activeProject?.github_url && (
-            <p className={cn("text-xs mt-1 flex items-center gap-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
-              <GitBranch size={12} />
-              <a href={activeProject.github_url} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-500 transition-colors underline underline-offset-2 decoration-dotted">{activeProject.github_url}</a>
-            </p>
-          )}
-          <p className={cn("text-sm mt-2", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Real-time health status of your infrastructure clusters.</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 text-white">
           <Plus size={18} />
@@ -116,118 +106,138 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 min-w-0">
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : "text-red-500", size: "text-4xl" },
-              { value: activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0), label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
-              { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
-              { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                className={cn("p-6 rounded-3xl border transition-all", theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
-              >
-                <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
-                <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className={cn("w-full lg:w-96 rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}
-        >
-          <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
-            <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
-              <Server size={18} className="text-indigo-500" />
-              Active Resources
-            </h2>
-          </div>
-          <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
-            {projects.length > 0 ? (
-              projects.map((project: Project, i: number) => {
-                const scan = project.scan;
-                const isSecure = scan ? scan.score >= 80 : true;
-                return (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.05 }}
-                    onClick={() => setFocus(project.id)}
-                    className={cn(
-                      "p-5 flex items-center justify-between group transition-colors cursor-pointer",
-                      theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
-                      focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
-                    )}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
-                        {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
-                          {focusedProjectId === project.id && (
-                            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
-                          <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
-                          {focusedProjectId === project.id ? (
-                            <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
-                              <ShieldCheck size={12} />
-                              {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {scan && (
-                        <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
-                      )}
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
-                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
-                        title="Rescan"
-                      >
-                        <RotateCw size={14} />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
-                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
-                      >
-                        <Trash2 size={14} />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                );
-              })
-            ) : (
-              <div className="p-12 text-center">
-                <p className={cn("text-sm", theme === "light" ? "text-slate-400" : "text-neutral-500")}>No resources found. Add your first project.</p>
-              </div>
-            )}
-          </div>
-        </motion.div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : "text-red-500", size: "text-4xl" },
+          { value: activeScan ? activeScan.total_files : (totalFiles > 0 ? totalFiles : 0), label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
+          { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+          { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            className={cn("p-6 rounded-3xl border transition-all", theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
+          >
+            <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
+            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
+
+      {/* Repo Details & Description */}
+      {activeProject && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-6 py-4 rounded-2xl border", theme === "light" ? "bg-white/60 border-slate-200/60" : "bg-white/5 border-white/5")}
+        >
+          <span className={cn("text-xs flex items-center gap-1.5", theme === "light" ? "text-slate-600" : "text-neutral-400")}>
+            <span className="font-bold text-indigo-500">{activeProject.name}</span>
+            <span className={theme === "light" ? "text-slate-300" : "text-neutral-700"}>•</span>
+            Environment: <span className="font-semibold text-indigo-500">{activeProject.environment}</span>
+          </span>
+          {activeProject.github_url && (
+            <a href={activeProject.github_url} target="_blank" rel="noopener noreferrer" className={cn("text-xs flex items-center gap-1.5 hover:text-indigo-500 transition-colors underline underline-offset-2 decoration-dotted", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
+              <GitBranch size={12} />
+              {activeProject.github_url.replace("https://github.com/", "")}
+            </a>
+          )}
+          <span className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-600")}>Real-time health status of your infrastructure clusters.</span>
+        </motion.div>
+      )}
+
+      {/* Active Resources */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}
+      >
+        <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
+          <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
+            <Server size={18} className="text-indigo-500" />
+            Active Resources
+          </h2>
+        </div>
+        <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
+          {projects.length > 0 ? (
+            projects.map((project: Project, i: number) => {
+              const scan = project.scan;
+              const isSecure = scan ? scan.score >= 80 : true;
+              return (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  onClick={() => setFocus(project.id)}
+                  className={cn(
+                    "p-5 flex items-center justify-between group transition-colors cursor-pointer",
+                    theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
+                    focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", theme === "light" ? "bg-indigo-50 text-indigo-600" : "bg-indigo-500/10 text-indigo-500")}>
+                      {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
+                        {focusedProjectId === project.id && (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
+                        <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
+                        {focusedProjectId === project.id ? (
+                          <span className={cn("flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider", isSecure ? "text-emerald-600" : "text-amber-600")}>
+                            <ShieldCheck size={12} />
+                            {isSecure ? "Secure" : `${scan?.issues_found || 0} Issues`}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500">INACTIVE</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {scan && (
+                      <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
+                    )}
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
+                      className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
+                      title="Rescan"
+                    >
+                      <RotateCw size={14} />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
+                      className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
+                    >
+                      <Trash2 size={14} />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="p-12 text-center">
+              <p className={cn("text-sm", theme === "light" ? "text-slate-400" : "text-neutral-500")}>No resources found. Add your first project.</p>
+            </div>
+          )}
+        </div>
+      </motion.div>
     </>
   );
 }
@@ -285,8 +295,13 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
 
   const files = scanData?.files || [];
   const filesWithIssues = files.filter((f: any) => f.issue_count > 0);
-  const totalIssues = files.reduce((sum: number, f: any) => sum + f.issue_count, 0);
+  const totalIssuesCount = files.reduce((sum: number, f: any) => sum + f.issue_count, 0);
   const scanError = scanData?.status === "error" ? (scanData?.error || "Scan failed") : null;
+
+  const totalSize = scanData?.total_size_hr || "0 B";
+  const totalFiles = scanData?.total_files || 0;
+  const score = scanData?.score ?? null;
+  const isSecure = score !== null && score >= 80;
 
   return (
     <div className={cn("space-y-8", theme === "light" ? "text-slate-800" : "text-white")}>
@@ -310,6 +325,28 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
             {scanning ? "Scanning..." : "Rescan"}
           </button>
         </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { value: score !== null ? `${score}%` : "N/A", label: "Security Score", color: isSecure ? "text-green-500" : "text-red-500", size: "text-4xl" },
+          { value: totalFiles, label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
+          { value: totalIssuesCount, label: "Issues Found", color: totalIssuesCount > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+          { value: totalSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 + i * 0.1, ease: "easeOut" }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            className={cn("p-6 rounded-3xl border transition-all", theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200" : "bg-neutral-900/50 border-white/5 hover:border-white/10 hover:shadow-lg")}
+          >
+            <h3 className={cn("font-bold", stat.size, stat.color)}>{stat.value}</h3>
+            <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
 
       {prResult && (prResult.message || prResult.error) && (
@@ -394,8 +431,8 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
               </motion.div>
             ))
           ) : (
-            <div className="p-12 text-center text-neutral-500 text-sm">
-              No files with issues found.
+            <div className={cn("p-12 text-center", theme === "light" ? "text-slate-400" : "text-neutral-500")}>
+              {scanData ? "No files with security issues found. Your repository looks clean." : "No scan data available. Click Rescan to analyze your repository."}
             </div>
           )}
         </div>
