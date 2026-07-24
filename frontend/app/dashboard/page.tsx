@@ -302,6 +302,7 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
   const files = scanData?.files || [];
   const filesWithIssues = files.filter((f: any) => f.issue_count > 0);
   const totalIssuesCount = files.reduce((sum: number, f: any) => sum + f.issue_count, 0);
+  const sortedFiles = [...filesWithIssues, ...files.filter((f: any) => f.issue_count === 0)];
   const scanError = scanData?.status === "error" ? (scanData?.error || "Scan failed") : null;
 
   const totalSize = scanData?.total_size_hr || "0 B";
@@ -377,8 +378,8 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
           <span className={cn("text-[10px] font-bold uppercase tracking-widest", filesWithIssues.length > 0 ? "text-red-500" : "text-green-500")}>{filesWithIssues.length} with issues</span>
         </div>
         <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
-          {files.length > 0 ? (
-            files.map((file: any, i: number) => {
+          {sortedFiles.length > 0 ? (
+            sortedFiles.map((file: any, i: number) => {
               const hasIssues = file.issue_count > 0;
               return (
                 <motion.div
