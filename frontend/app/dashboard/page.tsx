@@ -367,78 +367,98 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
         </div>
       )}
 
-      {/* Files with Issues */}
+      {/* All Scanned Files */}
       <div className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}>
-        <div className={cn("p-6 border-b", theme === "light" ? "border-slate-200" : "border-white/5")}>
+        <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
           <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-900" : "text-white")}>
-            <AlertTriangle size={18} className="text-red-500" />
-            Files with Security Issues ({filesWithIssues.length})
+            <Server size={18} className="text-indigo-500" />
+            All Scanned Files ({files.length})
           </h2>
+          <span className={cn("text-[10px] font-bold uppercase tracking-widest", filesWithIssues.length > 0 ? "text-red-500" : "text-green-500")}>{filesWithIssues.length} with issues</span>
         </div>
         <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
-          {filesWithIssues.length > 0 ? (
-            filesWithIssues.map((file: any, i: number) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
-                className={cn("p-6 transition-colors", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
-                    <AlertTriangle size={20} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className={cn("text-sm font-bold", theme === "light" ? "text-slate-800" : "text-white")}>{file.path}</h4>
-                    <p className="text-xs text-neutral-500">{file.size_hr} • {file.issue_count} issue(s)</p>
-                  </div>
-                </div>
-                <div className="space-y-2 ml-13">
-                  {file.issues.map((issue: any, j: number) => (
-                    <div key={j} className={cn(
-                      "p-3 rounded-2xl border",
-                      issue.severity === "critical" ? "bg-red-500/5 border-red-500/20" :
-                      issue.severity === "high" ? "bg-amber-500/5 border-amber-500/20" :
-                      "bg-yellow-500/5 border-yellow-500/20"
+          {files.length > 0 ? (
+            files.map((file: any, i: number) => {
+              const hasIssues = file.issue_count > 0;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.03 }}
+                  className={cn("p-4 transition-colors", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                      hasIssues
+                        ? "bg-red-500/10 border-red-500/20 text-red-500"
+                        : theme === "light" ? "bg-green-50 border-green-200/60 text-green-500" : "bg-green-500/10 border-green-500/20 text-green-500"
                     )}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={cn(
-                          "text-xs font-bold uppercase tracking-wider",
-                          issue.severity === "critical" ? "text-red-500" :
-                          issue.severity === "high" ? "text-amber-500" : "text-yellow-500"
-                        )}>
-                          {issue.type}
-                        </span>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
-                          issue.severity === "critical" ? "bg-red-500/20 text-red-500" :
-                          issue.severity === "high" ? "bg-amber-500/20 text-amber-500" :
-                          "bg-yellow-500/20 text-yellow-500"
-                        )}>
-                          {issue.severity}
-                        </span>
-                      </div>
-                      {issue.match && (
-                        <p className="text-xs text-neutral-400 font-mono truncate">
-                          Found: <span className={cn(theme === "light" ? "text-slate-700" : "text-neutral-300")}>{issue.match}</span>
-                        </p>
-                      )}
-                      {issue.remediation && (
-                        <details className="mt-2 group">
-                          <summary className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 cursor-pointer hover:text-indigo-300 select-none">
-                            How to Fix ▸
-                          </summary>
-                          <p className="text-xs text-neutral-400 mt-2 leading-relaxed">{issue.remediation}</p>
-                        </details>
-                      )}
+                      {hasIssues ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
                     </div>
-                  ))}
-                </div>
-              </motion.div>
-            ))
+                    <div className="min-w-0 flex-1">
+                      <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{file.path}</h4>
+                      <p className={cn("text-xs", hasIssues ? "text-neutral-500" : theme === "light" ? "text-slate-400" : "text-neutral-600")}>
+                        {file.size_hr}
+                        {hasIssues ? ` • ${file.issue_count} issue(s)` : " • Clean"}
+                      </p>
+                    </div>
+                    {hasIssues && (
+                      <span className={cn("px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider shrink-0", isSecure ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500")}>
+                        {file.issue_count} issue{(file.issue_count) > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  {hasIssues && (
+                    <div className="space-y-2 mt-3 ml-13">
+                      {file.issues.map((issue: any, j: number) => (
+                        <div key={j} className={cn(
+                          "p-3 rounded-2xl border",
+                          issue.severity === "critical" ? "bg-red-500/5 border-red-500/20" :
+                          issue.severity === "high" ? "bg-amber-500/5 border-amber-500/20" :
+                          "bg-yellow-500/5 border-yellow-500/20"
+                        )}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={cn(
+                              "text-xs font-bold uppercase tracking-wider",
+                              issue.severity === "critical" ? "text-red-500" :
+                              issue.severity === "high" ? "text-amber-500" : "text-yellow-500"
+                            )}>
+                              {issue.type}
+                            </span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-[9px] font-bold uppercase",
+                              issue.severity === "critical" ? "bg-red-500/20 text-red-500" :
+                              issue.severity === "high" ? "bg-amber-500/20 text-amber-500" :
+                              "bg-yellow-500/20 text-yellow-500"
+                            )}>
+                              {issue.severity}
+                            </span>
+                          </div>
+                          {issue.match && (
+                            <p className="text-xs text-neutral-400 font-mono truncate">
+                              Found: <span className={cn(theme === "light" ? "text-slate-700" : "text-neutral-300")}>{issue.match}</span>
+                            </p>
+                          )}
+                          {issue.remediation && (
+                            <details className="mt-2 group">
+                              <summary className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 cursor-pointer hover:text-indigo-300 select-none">
+                                How to Fix ▸
+                              </summary>
+                              <p className="text-xs text-neutral-400 mt-2 leading-relaxed">{issue.remediation}</p>
+                            </details>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })
           ) : (
             <div className={cn("p-12 text-center", theme === "light" ? "text-slate-400" : "text-neutral-500")}>
-              {scanData ? "No files with security issues found. Your repository looks clean." : "No scan data available. Click Rescan to analyze your repository."}
+              {scanData ? "No files found in scan results." : "No scan data available. Click Rescan to analyze your repository."}
             </div>
           )}
         </div>
