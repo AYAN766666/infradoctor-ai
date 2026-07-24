@@ -256,6 +256,7 @@ def get_scan_results(project_id: int, db: Session = Depends(get_db), user: User 
 
     report_data = json.loads(latest_scan.report_data) if latest_scan.report_data else {}
 
+    summary = report_data.get("summary", {})
     return {
         "scan": {
             "id": latest_scan.id,
@@ -264,9 +265,11 @@ def get_scan_results(project_id: int, db: Session = Depends(get_db), user: User 
             "total_files": latest_scan.total_files,
             "scanned_files": latest_scan.scanned_files,
             "issues_found": latest_scan.issues_found,
+            "sensitive_files_count": summary.get("sensitive_files_count", 0),
+            "large_files_count": summary.get("large_files_count", 0),
             "total_size_bytes": latest_scan.total_size_bytes,
-            "total_size_hr": report_data.get("summary", {}).get("total_size_hr", "0 B"),
-            "secure": report_data.get("summary", {}).get("secure", False),
+            "total_size_hr": summary.get("total_size_hr", "0 B"),
+            "secure": summary.get("secure", False),
             "created_at": str(latest_scan.created_at) if latest_scan.created_at else None,
             "completed_at": str(latest_scan.completed_at) if latest_scan.completed_at else None,
             "files": report_data.get("files", []),

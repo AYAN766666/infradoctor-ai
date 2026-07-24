@@ -309,6 +309,8 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
   const totalFiles = scanData?.total_files || 0;
   const score = scanData?.score ?? null;
   const isSecure = score !== null && score >= 80;
+  const sensitiveFilesCount = scanData?.sensitive_files_count ?? files.filter((f: any) => f.sensitive_name).length ?? 0;
+  const largeFilesCount = scanData?.large_files_count ?? files.filter((f: any) => f.is_large).length ?? 0;
 
   return (
     <div className={cn("space-y-8", theme === "light" ? "text-slate-800" : "text-white")}>
@@ -335,11 +337,12 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { value: score !== null ? `${score}%` : "N/A", label: "Security Score", color: isSecure ? "text-green-500" : "text-red-500", size: "text-4xl" },
           { value: totalFiles, label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
           { value: totalIssuesCount, label: "Issues Found", color: totalIssuesCount > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+          { value: sensitiveFilesCount, label: "Sensitive Files", color: sensitiveFilesCount > 0 ? "text-amber-500" : "text-green-500", size: "text-4xl" },
           { value: totalSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
         ].map((stat, i) => (
           <motion.div
@@ -399,7 +402,11 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
                       {hasIssues ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{file.path}</h4>
+                      <h4 className={cn("text-sm font-bold truncate flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
+                        {file.path}
+                        {file.sensitive_name && <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 shrink-0">Sensitive</span>}
+                        {file.is_large && <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 shrink-0">Large</span>}
+                      </h4>
                       <p className={cn("text-xs", hasIssues ? "text-neutral-500" : theme === "light" ? "text-slate-400" : "text-neutral-600")}>
                         {file.size_hr}
                         {hasIssues ? ` • ${file.issue_count} issue(s)` : " • Clean"}
@@ -464,6 +471,56 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
           )}
         </div>
       </div>
+
+      {/* Sensitive Files Section */}
+      {scanData?.sensitive_files && scanData.sensitive_files.length > 0 && (
+        <div className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}>
+          <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
+            <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-900" : "text-white")}>
+              <AlertTriangle size={18} className="text-amber-500" />
+              Sensitive Files ({scanData.sensitive_files.length})
+            </h2>
+          </div>
+          <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
+            {scanData.sensitive_files.map((path: string, i: number) => (
+              <div key={i} className={cn("p-4 flex items-center gap-3", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-amber-500/10 border-amber-500/20 text-amber-500">
+                  <AlertTriangle size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{path}</p>
+                  <p className="text-xs text-neutral-500">Sensitive filename detected</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Large Files Section */}
+      {scanData?.large_files && scanData.large_files.length > 0 && (
+        <div className={cn("rounded-3xl overflow-hidden border", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}>
+          <div className={cn("p-6 border-b flex items-center justify-between", theme === "light" ? "border-slate-200" : "border-white/5")}>
+            <h2 className={cn("font-bold flex items-center gap-2", theme === "light" ? "text-slate-900" : "text-white")}>
+              <Server size={18} className="text-yellow-500" />
+              Large Files ({scanData.large_files.length})
+            </h2>
+          </div>
+          <div className={cn("divide-y", theme === "light" ? "divide-slate-200" : "divide-white/5")}>
+            {scanData.large_files.map((lf: any, i: number) => (
+              <div key={i} className={cn("p-4 flex items-center gap-3", theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5")}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-yellow-500/10 border-yellow-500/20 text-yellow-500">
+                  <Server size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{lf.path || lf}</p>
+                  <p className="text-xs text-neutral-500">{lf.size ? `${(lf.size / 1024 / 1024).toFixed(1)} MB` : "Large file"}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
