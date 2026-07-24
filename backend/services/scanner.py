@@ -1,6 +1,7 @@
 import re
 import json
 import os
+import fnmatch
 import requests
 from urllib.parse import urlparse
 from services.logger import logger
@@ -12,12 +13,13 @@ except ImportError:
     OLLAMA_AVAILABLE = False
 
 SENSITIVE_PATTERNS = [
-    (r'(?i)(?:api[_-]?key|apikey)\s*[=:]\s*["\']?[A-Za-z0-9_\-]{16,}["\']?', "API Key"),
-    (r'(?i)(?:secret|secret[_-]?key)\s*[=:]\s*["\']?[A-Za-z0-9_\-]{16,}["\']?', "Secret Key"),
-    (r'(?i)(?:password|passwd|pwd)\s*[=:]\s*["\']?[^"\'\s]{6,}["\']?', "Password"),
-    (r'(?i)(?:token|auth[_-]?token|bearer)\s*[=:]\s*["\']?[A-Za-z0-9_\-\.]{16,}["\']?', "Auth Token"),
-    (r'(?i)(?:access[_-]?key[_-]?id|aws_access_key_id)\s*[=:]\s*["\']?AKIA[0-9A-Z]{16}["\']?', "AWS Access Key"),
-    (r'(?i)(?:secret[_-]?access[_-]?key|aws_secret_access_key)\s*[=:]\s*["\']?[A-Za-z0-9\/+]{40}["\']?', "AWS Secret Key"),
+    (r'(?i)\b(?:api[_-]?key|apikey)\s*[=:]\s*["\']?[\w\-]{16,}', "API Key"),
+    (r'(?i)\b(?:secret[_-]?key)\s*[=:]\s*["\']?[\w\-]{16,}', "Secret Key"),
+    (r'(?i)\b(?:password|passwd|pwd)\s*[=:]\s*["\'][^"\']{6,}["\']', "Password"),
+    (r'(?i)\b(?:token|auth[_-]?token)\s*[=:]\s*["\'][A-Za-z0-9_\-\.\/]{16,}["\']', "Auth Token"),
+    (r'(?i)\bbearer\s*[=:]\s*["\'][A-Za-z0-9_\-\.]{16,}["\']', "Auth Token"),
+    (r'(?i)\b(?:access[_-]?key[_-]?id|aws_access_key_id)\s*[=:]\s*["\']?AKIA[0-9A-Z]{16}["\']?', "AWS Access Key"),
+    (r'(?i)\b(?:secret[_-]?access[_-]?key|aws_secret_access_key)\s*[=:]\s*["\']?[A-Za-z0-9\/+]{40}["\']?', "AWS Secret Key"),
     (r'ghp_[A-Za-z0-9_]{36,}', "GitHub Token"),
     (r'gho_[A-Za-z0-9_]{36,}', "GitHub OAuth Token"),
     (r'gsk_[A-Za-z0-9_]{36,}', "Groq API Key"),
@@ -30,8 +32,8 @@ SENSITIVE_PATTERNS = [
 
 SENSITIVE_FILENAMES = [
     ".env", ".env.local", ".env.production", ".env.development",
+    ".env.staging", ".env.test", ".env.example",
     "credentials", "credential", "secret", "secrets", "secret.json",
-    "config.json", "config.yaml", "config.yml", "configuration",
     "id_rsa", "id_rsa.pub", "id_ed25519", "id_ed25519.pub",
     ".npmrc", ".netrc", ".dockercfg", ".dockerconfigjson",
     "service-account.json", "service-account-key.json",
@@ -43,6 +45,11 @@ SENSITIVE_FILENAMES = [
     "*.pem", "*.key", "*.cert", "*.p12", "*.pfx",
     "passwd", "shadow", "htpasswd",
     ".git-credentials", ".gitconfig",
+]
+
+SENSITIVE_DIRECTORIES = [
+    ".git", ".svn", ".hg", ".env", "secrets", "credentials",
+    ".aws", ".gcp", ".azure", ".config/sops",
 ]
 
 LARGE_FILE_THRESHOLD = 500 * 1024
@@ -131,15 +138,60 @@ def fetch_file_content(owner: str, repo: str, path: str):
         return None
 
 def check_sensitive_filename(filename: str):
-    name_lower = filename.lower()
+    name_lower = filename.lower().replace("\\", "/")
     for pattern in SENSITIVE_FILENAMES:
         if pattern.startswith("*"):
-            if name_lower.endswith(pattern[1:]):
+            if fnmatch.fnmatch(name_lower, pattern):
                 return True
         elif pattern == name_lower:
             return True
-        elif pattern in name_lower:
+    for directory in SENSITIVE_DIRECTORIES:
+        if name_lower.startswith(directory + "/") or name_lower.startswith(directory + "\\"):
             return True
+    return False
+
+EXCLUDED_FUNCTIONS = [
+    "getpass", "get_password_hash", "verify_password",
+    "create_access_token", "create_refresh_token",
+    "localstorage", "sessionstorage",
+    "getenv", "environ.get", "os.getenv", "os.environ",
+    "process.env", "config(", "settings.",
+    "socket.", "request.", "response.",
+]
+
+FUNCTION_CALL_RE = re.compile(r'^[a-z_][a-z0-9_]*\(')
+IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+DIGIT_PATTERN_RE = re.compile(r'[0-9]')
+
+def is_false_positive(match: str, label: str) -> bool:
+    match_lower = match.lower().strip()
+
+    if re.match(r'\b(password|passwd|pwd|token|bearer)\s*:\s*(?:str|string|bytes|int|bool|float)', match_lower):
+        return True
+
+    if "=" in match_lower:
+        value = match_lower.split("=", 1)[1].strip()
+        if value.startswith(("'", '"', "`")):
+            return False
+        if any(kw in value.lower() for kw in EXCLUDED_FUNCTIONS):
+            return True
+        if FUNCTION_CALL_RE.match(value):
+            return True
+        if "." in value:
+            before_dot = value.split(".")[0]
+            if before_dot.isidentifier() and not DIGIT_PATTERN_RE.search(before_dot):
+                return True
+        if IDENTIFIER_RE.match(value) and not DIGIT_PATTERN_RE.search(value):
+            return True
+
+    if ":" in match_lower:
+        after_colon = match_lower.split(":", 1)[1].strip().rstrip(",)")
+        if after_colon in ("str", "string", "int", "bool", "float", "bytes"):
+            return True
+
+    if "bearer" in match_lower and not any(c in match_lower for c in ("'", '"', "`")):
+        return True
+
     return False
 
 def check_content_for_secrets(content: str, filename: str):
@@ -149,6 +201,8 @@ def check_content_for_secrets(content: str, filename: str):
     for pattern, label in SENSITIVE_PATTERNS:
         matches = re.findall(pattern, content)
         for match in matches:
+            if is_false_positive(match[:40], label):
+                continue
             masked = match[:20] + "****" if len(match) > 24 else match
             findings.append({
                 "type": label,
