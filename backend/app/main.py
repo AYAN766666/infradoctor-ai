@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 _import_error = None
 try:
-    from routes import auth, projects, logs, alerts, ai, security, team, settings, metrics, infrastructure, databases, reviews, ws, features
+    from routes import auth, projects, logs, alerts, ai, security, team, settings, metrics, infrastructure, databases, reviews, ws, features, webhooks
     from services.monitor import monitoring_engine
     from db.db import engine, Base
     from sqlalchemy import inspect, text
@@ -78,6 +78,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "https://infradoctor-frontend.vercel.app",
         "https://infradoctor-backend.vercel.app",
+        "https://github.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -113,6 +114,7 @@ if _import_error is None:
     app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
     app.include_router(ws.router)
     app.include_router(features.router, prefix="", tags=["features"])
+    app.include_router(webhooks.router, prefix="", tags=["webhooks"])
 
 if __name__ == "__main__":
     import uvicorn

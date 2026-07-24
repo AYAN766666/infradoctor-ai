@@ -991,6 +991,40 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
         </div>
       </div>
 
+      {/* Webhook Integration */}
+      <div className={cn(
+        "border rounded-3xl p-8 transition-all duration-500",
+        theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
+      )}>
+        <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
+          <GitBranch size={20} className="text-indigo-500" />
+          GitHub Webhook (Auto-Scan)
+        </h2>
+        <p className={cn("text-xs mb-4", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
+          Add this webhook URL to your GitHub repository to auto-scan on every push. InfraDoctor will create an issue if secrets are found.
+        </p>
+        <div className={cn(
+          "flex items-center gap-3 p-4 rounded-2xl border",
+          theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
+        )}>
+          <input
+            readOnly
+            value={`https://infradoctor-backend.vercel.app/webhooks/github`}
+            onClick={(e) => { (e.target as HTMLInputElement).select(); navigator.clipboard.writeText((e.target as HTMLInputElement).value); toast.success("Copied!"); }}
+            className={cn(
+              "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none cursor-pointer",
+              theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
+            )}
+          />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-green-500 flex items-center gap-1 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-green-500" /> Active
+          </span>
+        </div>
+        <p className={cn("text-[10px] mt-3", theme === "light" ? "text-slate-400" : "text-neutral-600")}>
+          Go to your repo → Settings → Webhooks → Add webhook. Use the URL above, content type <span className="font-mono">application/json</span>, and select <span className="font-mono">Just the push event</span>.
+        </p>
+      </div>
+
       <div className={cn(
         "border rounded-3xl p-8 transition-all duration-500",
         theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
