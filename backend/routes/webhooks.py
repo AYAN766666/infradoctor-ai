@@ -3,6 +3,7 @@ import asyncio
 import hmac
 import hashlib
 import os
+import logging
 import requests
 from fastapi import APIRouter, HTTPException, Request, Depends
 from sqlalchemy.orm import Session
@@ -16,10 +17,13 @@ from routes.deps import get_current_user
 from datetime import datetime
 from urllib.parse import urlparse
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET") or os.getenv("GITHUB_TOKEN") or ""
-INFRA_DOCTOR_BASE = os.getenv("NEXT_PUBLIC_API_URL") or "https://infradoctor-backend.vercel.app"
+INFRA_DOCTOR_BASE = os.getenv("INFRA_DOCTOR_BASE") or "https://infradoctor-backend.vercel.app"
 
 def github_api(owner: str, repo: str):
     token = os.getenv("GITHUB_TOKEN")
@@ -39,10 +43,30 @@ def create_github_issue(owner: str, repo: str, title: str, body: str):
         return resp.json().get("html_url")
     return None
 
+def find_existing_webhook(owner: str, repo: str):
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        return None
+    url = f"https://api.github.com/repos/{owner}/{repo}/hooks"
+    headers = github_api(owner, repo)
+    resp = requests.get(url, headers=headers, timeout=15)
+    if resp.status_code != 200:
+        return None
+    target_url = f"{INFRA_DOCTOR_BASE}/webhooks/github"
+    for hook in resp.json():
+        if hook.get("config", {}).get("url") == target_url:
+            return hook.get("id")
+    return None
+
 def register_github_webhook(owner: str, repo: str):
     token = os.getenv("GITHUB_TOKEN")
     if not token:
+        logger.error("register_github_webhook: No GITHUB_TOKEN")
         return None, "No GitHub token configured"
+    existing_id = find_existing_webhook(owner, repo)
+    logger.info(f"register_github_webhook: existing_id={existing_id}")
+    if existing_id:
+        return existing_id, None
     url = f"https://api.github.com/repos/{owner}/{repo}/hooks"
     headers = github_api(owner, repo)
     hook_config = {
@@ -99,7 +123,9 @@ def register_webhook(project_id: int, db: Session = Depends(get_db), user: User 
         project.webhook_id = hook_id
         project.webhook_active = 1
         db.commit()
+        logger.info(f"Webhook registered: {hook_id} for project {project_id}")
         return {"status": "ok", "webhook_id": hook_id}
+    logger.error(f"Webhook creation failed for {owner}/{repo_name}: {error}")
     return {"status": "error", "error": error or "Failed to create webhook"}
 
 @router.post("/webhooks/unregister/{project_id}")

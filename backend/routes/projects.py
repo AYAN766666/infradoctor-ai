@@ -1,6 +1,7 @@
 import json
 import math
 import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
 from db.db import get_db
@@ -8,6 +9,10 @@ from models.project import Project
 from models.scan_result import ScanResult
 from models.infrastructure import Infrastructure
 from models.database import Database
+from routes.webhooks import parse_github_repo_url, register_github_webhook
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 from models.ai_report import AIReport
 from models.alert import Alert
 from models.comment import Comment
@@ -95,16 +100,18 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
     db.commit()
 
     try:
-        from routes.webhooks import parse_github_repo_url, register_github_webhook
         owner, repo_name = parse_github_repo_url(db_project.github_url)
         if owner and repo_name:
-            hook_id, _ = register_github_webhook(owner, repo_name)
+            hook_id, err = register_github_webhook(owner, repo_name)
             if hook_id:
                 db_project.webhook_id = hook_id
                 db_project.webhook_active = 1
                 db.commit()
-    except Exception:
-        pass
+                logger.info(f"Auto-created webhook {hook_id} for {owner}/{repo_name}")
+            else:
+                logger.warning(f"Auto-webhook failed for {owner}/{repo_name}: {err}")
+    except Exception as e:
+        logger.error(f"Auto-webhook exception: {e}")
 
     try:
         loop = asyncio.get_event_loop()
@@ -231,16 +238,18 @@ def trigger_scan(request: Request, project_id: int, db: Session = Depends(get_db
 
     if not db_project.webhook_id:
         try:
-            from routes.webhooks import parse_github_repo_url, register_github_webhook
             owner, repo_name = parse_github_repo_url(db_project.github_url)
             if owner and repo_name:
-                hook_id, _ = register_github_webhook(owner, repo_name)
+                hook_id, err = register_github_webhook(owner, repo_name)
                 if hook_id:
                     db_project.webhook_id = hook_id
                     db_project.webhook_active = 1
                     db.commit()
-        except Exception:
-            pass
+                    logger.info(f"Auto-created webhook {hook_id} for {owner}/{repo_name}")
+                else:
+                    logger.warning(f"Auto-webhook failed for {owner}/{repo_name}: {err}")
+        except Exception as e:
+            logger.error(f"Auto-webhook exception: {e}")
 
     report = ScanResult(
         project_id=db_project.id,
