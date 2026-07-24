@@ -102,6 +102,12 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
           {activeProject && (
             <p className={cn("text-xs mt-1", theme === "light" ? "text-slate-600" : "text-neutral-400")}>Active: <span className="font-bold">{activeProject.name}</span> • Environment: <span className="font-semibold text-indigo-500">{activeProject.environment}</span></p>
           )}
+          {activeProject?.github_url && (
+            <p className={cn("text-xs mt-1 flex items-center gap-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
+              <GitBranch size={12} />
+              <a href={activeProject.github_url} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-500 transition-colors underline underline-offset-2 decoration-dotted">{activeProject.github_url}</a>
+            </p>
+          )}
           <p className={cn("text-sm mt-2", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Real-time health status of your infrastructure clusters.</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 text-white">
@@ -197,7 +203,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
-                        className={cn("p-2 transition-colors", theme === "light" ? "text-indigo-400 hover:text-indigo-600" : "text-indigo-500/70 hover:text-indigo-500")}
+                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
                         title="Rescan"
                       >
                         <RotateCw size={14} />
@@ -206,7 +212,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
-                        className={cn("p-2 transition-colors", theme === "light" ? "text-red-400 hover:text-red-600" : "text-red-500/70 hover:text-red-500")}
+                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
                       >
                         <Trash2 size={14} />
                       </motion.button>
@@ -299,7 +305,7 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
           <p className={cn("text-sm mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Scanned files and security issues from your repository.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={triggerScan} disabled={scanning} className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-500 transition-all disabled:opacity-50">
+          <button onClick={triggerScan} disabled={scanning} className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-500 transition-all disabled:opacity-50 text-white shadow-lg shadow-indigo-500/20">
             {scanning ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck size={14} />}
             {scanning ? "Scanning..." : "Rescan"}
           </button>
