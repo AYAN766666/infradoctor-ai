@@ -48,6 +48,10 @@ interface Project {
     score: number;
     issues_found: number;
     total_files: number;
+    total_size_hr?: string;
+    sensitive_files_count?: number;
+    large_files_count?: number;
+    secure?: boolean;
   };
 }
 
@@ -77,6 +81,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
   const aggSize = activeScan?.total_size_hr || "—";
   const displayScore = activeScan ? `${activeScan.score}%` : "—";
   const displayColor = activeScan ? (activeScan.score >= 80 ? "green" : "red") : "neutral";
+  const sensitiveFilesCount = activeScan?.sensitive_files_count ?? 0;
   const noFocus = !focusedProjectId;
 
   return (
@@ -109,11 +114,12 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </motion.div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             {[
               { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : displayColor === "red" ? "text-red-500" : "text-neutral-400", size: "text-4xl" },
               { value: totalFiles, label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
               { value: totalIssues, label: "Issues Found", color: totalIssues > 0 ? "text-red-500" : "text-green-500", size: "text-4xl" },
+              { value: sensitiveFilesCount, label: "Sensitive Files", color: sensitiveFilesCount > 0 ? "text-amber-500" : "text-green-500", size: "text-4xl" },
               { value: aggSize, label: "Storage", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-2xl" },
             ].map((stat, i) => (
               <motion.div

@@ -145,6 +145,7 @@ def get_projects(
                 bytes_val /= 1024
             else:
                 size_hr = f"{bytes_val:.1f} TB"
+            report_summary = json.loads(latest_scan.report_data).get("summary", {}) if latest_scan.report_data else {}
             scan_info = {
                 "id": latest_scan.id,
                 "status": latest_scan.status,
@@ -152,6 +153,9 @@ def get_projects(
                 "issues_found": latest_scan.issues_found,
                 "total_files": latest_scan.total_files,
                 "total_size_hr": size_hr,
+                "sensitive_files_count": report_summary.get("sensitive_files_count", 0),
+                "large_files_count": report_summary.get("large_files_count", 0),
+                "secure": report_summary.get("secure", False),
             }
         result.append({
             "id": p.id,
