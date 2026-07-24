@@ -95,6 +95,18 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
     db.commit()
 
     try:
+        from routes.webhooks import parse_github_repo_url, register_github_webhook
+        owner, repo_name = parse_github_repo_url(db_project.github_url)
+        if owner and repo_name:
+            hook_id, _ = register_github_webhook(owner, repo_name)
+            if hook_id:
+                db_project.webhook_id = hook_id
+                db_project.webhook_active = 1
+                db.commit()
+    except Exception:
+        pass
+
+    try:
         loop = asyncio.get_event_loop()
         loop.create_task(broadcast_projects(user.id))
         loop.create_task(broadcast_metrics(user.id))
@@ -108,6 +120,8 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
             "github_url": db_project.github_url,
             "environment": db_project.environment,
             "status": db_project.status,
+            "webhook_id": db_project.webhook_id,
+            "webhook_active": bool(db_project.webhook_active),
         },
         "scan": {
             "id": report.id,
@@ -165,6 +179,8 @@ def get_projects(
             "environment": p.environment,
             "status": p.status,
             "last_seen": str(p.last_seen) if p.last_seen else None,
+            "webhook_id": p.webhook_id,
+            "webhook_active": bool(p.webhook_active),
             "scan": scan_info,
         })
     return {
@@ -212,6 +228,19 @@ def trigger_scan(request: Request, project_id: int, db: Session = Depends(get_db
     scan_result = scan_github_repo(db_project.github_url, use_ollama=False)
 
     auto_populate_infrastructure_and_databases(project_id, scan_result, db)
+
+    if not db_project.webhook_id:
+        try:
+            from routes.webhooks import parse_github_repo_url, register_github_webhook
+            owner, repo_name = parse_github_repo_url(db_project.github_url)
+            if owner and repo_name:
+                hook_id, _ = register_github_webhook(owner, repo_name)
+                if hook_id:
+                    db_project.webhook_id = hook_id
+                    db_project.webhook_active = 1
+                    db.commit()
+        except Exception:
+            pass
 
     report = ScanResult(
         project_id=db_project.id,

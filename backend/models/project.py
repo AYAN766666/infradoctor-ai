@@ -13,6 +13,8 @@ class Project(Base):
     environment = Column(String(50))
     status = Column(String(50), default="active")
     last_seen = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    webhook_id = Column(Integer, nullable=True)
+    webhook_active = Column(Integer, default=0)
 
     user = relationship("User", back_populates="projects")
     scans = relationship("ScanResult", back_populates="project", cascade="all, delete-orphan")

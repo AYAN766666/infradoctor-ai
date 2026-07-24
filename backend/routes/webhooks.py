@@ -3,34 +3,73 @@ import asyncio
 import hmac
 import hashlib
 import os
-from fastapi import APIRouter, HTTPException, Request
+import requests
+from fastapi import APIRouter, HTTPException, Request, Depends
 from sqlalchemy.orm import Session
-from db.db import SessionLocal
+from db.db import SessionLocal, get_db
 from models.project import Project
 from models.scan_result import ScanResult
+from models.user import User
 from services.scanner import scan_github_repo
 from services.broadcast import broadcast_projects, broadcast_metrics
+from routes.deps import get_current_user
 from datetime import datetime
 from urllib.parse import urlparse
 
 router = APIRouter()
 
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET") or os.getenv("GITHUB_TOKEN") or ""
+INFRA_DOCTOR_BASE = os.getenv("NEXT_PUBLIC_API_URL") or "https://infradoctor-backend.vercel.app"
+
+def github_api(owner: str, repo: str):
+    token = os.getenv("GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
 
 def create_github_issue(owner: str, repo: str, title: str, body: str):
     token = os.getenv("GITHUB_TOKEN")
     if not token:
         return None
-    import requests
     url = f"https://api.github.com/repos/{owner}/{repo}/issues"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github.v3+json",
-    }
+    headers = github_api(owner, repo)
     resp = requests.post(url, json={"title": title, "body": body}, headers=headers, timeout=15)
     if resp.status_code in (201, 200):
         return resp.json().get("html_url")
     return None
+
+def register_github_webhook(owner: str, repo: str):
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        return None, "No GitHub token configured"
+    url = f"https://api.github.com/repos/{owner}/{repo}/hooks"
+    headers = github_api(owner, repo)
+    hook_config = {
+        "name": "web",
+        "active": True,
+        "events": ["push"],
+        "config": {
+            "url": f"{INFRA_DOCTOR_BASE}/webhooks/github",
+            "content_type": "json",
+            "insecure_ssl": "0",
+        },
+    }
+    resp = requests.post(url, json=hook_config, headers=headers, timeout=15)
+    if resp.status_code in (201, 200):
+        data = resp.json()
+        return data.get("id"), None
+    err = resp.json().get("message", "Unknown error")
+    return None, err
+
+def delete_github_webhook(owner: str, repo: str, hook_id: int):
+    token = os.getenv("GITHUB_TOKEN")
+    if not token or not hook_id:
+        return False
+    url = f"https://api.github.com/repos/{owner}/{repo}/hooks/{hook_id}"
+    headers = github_api(owner, repo)
+    resp = requests.delete(url, headers=headers, timeout=15)
+    return resp.status_code in (204, 200)
 
 def parse_github_repo_url(url: str):
     parsed = urlparse(url)
@@ -40,6 +79,51 @@ def parse_github_repo_url(url: str):
     if len(parts) >= 2:
         return parts[0], parts[1]
     return None, None
+
+# Webhook management endpoints
+@router.post("/webhooks/register/{project_id}")
+def register_webhook(project_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id, Project.user_id == user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    owner, repo_name = parse_github_repo_url(project.github_url)
+    if not owner:
+        raise HTTPException(status_code=400, detail="Invalid GitHub URL")
+
+    if project.webhook_id:
+        delete_github_webhook(owner, repo_name, project.webhook_id)
+
+    hook_id, error = register_github_webhook(owner, repo_name)
+    if hook_id:
+        project.webhook_id = hook_id
+        project.webhook_active = 1
+        db.commit()
+        return {"status": "ok", "webhook_id": hook_id}
+    return {"status": "error", "error": error or "Failed to create webhook"}
+
+@router.post("/webhooks/unregister/{project_id}")
+def unregister_webhook(project_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id, Project.user_id == user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    owner, repo_name = parse_github_repo_url(project.github_url)
+    if owner and project.webhook_id:
+        delete_github_webhook(owner, repo_name, project.webhook_id)
+    project.webhook_id = None
+    project.webhook_active = 0
+    db.commit()
+    return {"status": "ok"}
+
+@router.get("/webhooks/status/{project_id}")
+def webhook_status(project_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == project_id, Project.user_id == user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "webhook_id": project.webhook_id,
+        "webhook_active": bool(project.webhook_active),
+    }
 
 @router.post("/webhooks/github")
 async def github_webhook(request: Request):

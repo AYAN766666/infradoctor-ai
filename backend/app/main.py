@@ -39,6 +39,14 @@ if _import_error is None:
                     sql = "ALTER TABLE projects ADD COLUMN last_seen DATETIME" if engine.dialect.name == "sqlite" else "ALTER TABLE projects ADD COLUMN last_seen TIMESTAMP"
                     with engine.begin() as conn:
                         conn.execute(text(sql))
+                if "webhook_id" not in cols:
+                    sql = "ALTER TABLE projects ADD COLUMN webhook_id INTEGER" if engine.dialect.name == "sqlite" else "ALTER TABLE projects ADD COLUMN webhook_id INTEGER"
+                    with engine.begin() as conn:
+                        conn.execute(text(sql))
+                if "webhook_active" not in cols:
+                    sql = "ALTER TABLE projects ADD COLUMN webhook_active INTEGER DEFAULT 0" if engine.dialect.name == "sqlite" else "ALTER TABLE projects ADD COLUMN webhook_active INTEGER DEFAULT 0"
+                    with engine.begin() as conn:
+                        conn.execute(text(sql))
         except Exception as e:
             logger.error(f"Migration: {e}")
     except Exception as e:

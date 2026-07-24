@@ -42,6 +42,8 @@ interface Project {
   environment: string;
   status: string;
   last_seen?: string;
+  webhook_id?: number | null;
+  webhook_active?: boolean;
   scan?: {
     id: number;
     status: string;
@@ -202,6 +204,11 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                             <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
                           ) : (
                             <span className="text-[9px] uppercase tracking-widest text-neutral-500 shrink-0">click to activate</span>
+                          )}
+                          {project.webhook_active && (
+                            <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-green-500 shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Auto
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -861,6 +868,7 @@ function DatabasesView({ projectId, theme }: { projectId?: number; theme?: strin
 }
 
 function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, setProjects, setAlerts, fetchData, projects, deletingId, setDeletingId }: { theme: string; setTheme: (t: string) => void; focusedProjectId: number | null; setFocusedProjectId: (id: any) => void; setProjects: (p: any) => void; setAlerts: (a: any) => void; fetchData: () => void; projects: Project[]; deletingId: number | null; setDeletingId: (id: number | null) => void }) {
+  const focusedProject = projects.find(p => p.id === focusedProjectId) || null;
   const [settings, setSettings] = useState({ notifications: true, theme: theme, language: "en", apiKey: "********-****-****-****-************" });
   const [resetLoading, setResetLoading] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -939,6 +947,30 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
     }
   };
 
+  const handleRegisterWebhook = (projectId: number) => {
+    const token = localStorage.getItem("token");
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`${API_BASE}/webhooks/register/${projectId}`, { method: "POST", headers })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") { toast.success("Webhook auto-created on GitHub!"); fetchData(); }
+        else toast.error(data.error || "Failed to create webhook — check GitHub token");
+      })
+      .catch(() => toast.error("Failed to create webhook"));
+  };
+
+  const handleUnregisterWebhook = (projectId: number) => {
+    const token = localStorage.getItem("token");
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`${API_BASE}/webhooks/unregister/${projectId}`, { method: "POST", headers })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "ok") { toast.success("Webhook removed"); fetchData(); }
+        else toast.error("Failed to remove webhook");
+      })
+      .catch(() => toast.error("Failed to remove webhook"));
+  };
+
   return (
     <div className="max-w-4xl space-y-8">
       {/* Manage Projects */}
@@ -1001,8 +1033,34 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
           GitHub Webhook (Auto-Scan)
         </h2>
         <p className={cn("text-xs mb-4", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
-          Add this webhook URL to your GitHub repository to auto-scan on every push. InfraDoctor will create an issue if secrets are found.
+          Webhooks auto-scan your repo on every push and create a GitHub issue if secrets are found.
         </p>
+
+        {focusedProject && (
+          <div className={cn(
+            "flex items-center justify-between p-4 rounded-2xl border mb-4",
+            theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
+          )}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-2.5 h-2.5 rounded-full",
+                focusedProject.webhook_active ? "bg-green-500" : "bg-neutral-500"
+              )} />
+              <div>
+                <p className={cn("text-sm font-semibold", theme === "light" ? "text-slate-800" : "text-white")}>{focusedProject.name}</p>
+                <p className="text-[10px] text-neutral-500">
+                  {focusedProject.webhook_active ? "Webhook active — auto-scan enabled" : "No webhook configured"}
+                </p>
+              </div>
+            </div>
+            {focusedProject.webhook_active ? (
+              <button onClick={() => handleUnregisterWebhook(focusedProject.id)} className="px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-500/30 hover:bg-red-500/20 transition-all">Remove</button>
+            ) : (
+              <button onClick={() => handleRegisterWebhook(focusedProject.id)} className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-500 text-[10px] font-bold uppercase tracking-widest border border-indigo-500/30 hover:bg-indigo-500/20 transition-all">Auto-Setup</button>
+            )}
+          </div>
+        )}
+
         <div className={cn(
           "flex items-center gap-3 p-4 rounded-2xl border",
           theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
@@ -1016,12 +1074,16 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
               theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
             )}
           />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-green-500 flex items-center gap-1 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-green-500" /> Active
+          <span className={cn(
+            "text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 shrink-0",
+            focusedProject?.webhook_active ? "text-green-500" : "text-neutral-500"
+          )}>
+            <span className={cn("w-2 h-2 rounded-full", focusedProject?.webhook_active ? "bg-green-500" : "bg-neutral-500")} />
+            {focusedProject?.webhook_active ? "Active" : "Inactive"}
           </span>
         </div>
         <p className={cn("text-[10px] mt-3", theme === "light" ? "text-slate-400" : "text-neutral-600")}>
-          Go to your repo → Settings → Webhooks → Add webhook. Use the URL above, content type <span className="font-mono">application/json</span>, and select <span className="font-mono">Just the push event</span>.
+          URL for external use. InfraDoctor now auto-creates webhooks when you add a repo — no manual setup needed.
         </p>
       </div>
 
