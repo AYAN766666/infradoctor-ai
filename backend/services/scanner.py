@@ -343,55 +343,61 @@ def check_content_for_secrets(content: str, filename: str):
             })
     return findings
 
-def verify_findings_with_ai(findings: list, filename: str, content: str) -> list:
-    if not findings or not content:
-        return findings
+def ai_read_and_analyze(content: str, filename: str) -> list:
+    if not content or len(content.strip()) < 10:
+        return []
 
-    context_lines = content.split("\n")
-    findings_context = []
-    for f in findings:
-        line_num = f.get("line", 1)
-        start = max(0, line_num - 4)
-        end = min(len(context_lines), line_num + 3)
-        snippet = "\n".join(context_lines[start:end])
-        findings_context.append({
-            "type": f["type"],
-            "match": f["match"],
-            "line": line_num,
-            "snippet": snippet,
-            "file": filename,
-        })
+    ext = os.path.splitext(filename)[1].lower()
+    doc_exts = {".md", ".txt", ".rst", ".mdx", ".html"}
+    if ext in doc_exts:
+        return []
 
-    prompt = f"""You are a security code reviewer. Verify if these potential secrets found in "{filename}" are REAL credentials or just EXAMPLE/TUTORIAL code.
+    max_chars = 4000
+    truncated = content[:max_chars] if len(content) > max_chars else content
 
-For each finding, analyze its context (surrounding lines) and determine:
-- "real": It's an actual credential that could cause damage if exposed
-- "example": It's example code, tutorial, placeholder, validation message, or educational content
+    prompt = f"""You are a security code reviewer. Read this file and find REAL security issues.
 
-Rules:
-- If the value contains common words like "password", "secret", "test", "example", "admin", "root" → it's likely EXAMPLE
-- If the line is in a documentation file (.md, .txt, README) → likely EXAMPLE  
-- If nearby lines mention "example", "demo", "tutorial", "guide", "sample" → likely EXAMPLE
-- If it looks like a validation error message ("must be", "is required") → definitely EXAMPLE
-- If it's a random high-entropy string with mixed case, digits, special chars → likely REAL
-- If it's a well-known API key format (ghp_, sk-, gsk_, etc.) → REAL
-- If the value is clearly a placeholder like "your_password_here" → EXAMPLE
+File: {filename}
+Content:
+```
+{truncated}
+```
 
-Respond ONLY with a JSON object:
-{{"verifications": [{{"index": 0, "verdict": "example" or "real"}}, ...]}}
+Analyze the code and find:
+1. Hardcoded secrets (API keys, passwords, tokens, database credentials)
+2. Sensitive files or data exposure
+3. Security vulnerabilities
 
-Findings to verify:
-{json.dumps(findings_context, indent=2)}"""
+For each finding, determine if it's:
+- **real**: An actual credential/secret that could cause damage if exposed
+- **example**: Example code, tutorial, placeholder, validation message, or educational content
+
+Rules for "example" verdict:
+- Value contains common words like "password", "secret", "test", "example", "admin"
+- If nearby lines mention "example", "demo", "tutorial", "guide", "sample"  
+- It's a validation error message ("must be", "is required")
+- Value is a placeholder like "your_password_here", "changeme", "xxxxxx"
+- Variable names like PASSWORD, TOKEN, SECRET used as env var placeholders
+
+Real secrets look like:
+- Random high-entropy strings (mixed case, digits, special chars)
+- Known API key formats: ghp_, sk-, gsk_, vcp_, AKIA, etc.
+- Database URLs with credentials: postgres://user:pass@host
+- Private keys: "-----BEGIN..."
+
+Respond ONLY with JSON:
+{{"findings": [{{"type": "Password", "match": "first 20 chars of value", "line": 42, "severity": "high", "verdict": "real"}}]}}
+If no real issues found, return {{"findings": []}}"""
 
     api_key = os.getenv("GROQ_API_KEY")
-    if api_key and len(api_key) > 10:
+    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
         try:
             import openai
             client = openai.OpenAI(
                 api_key=api_key,
                 base_url="https://api.groq.com/openai/v1",
-                timeout=15.0,
-                max_retries=0
+                timeout=20.0,
+                max_retries=1
             )
             response = client.chat.completions.create(
                 model="llama3-70b-8192",
@@ -400,17 +406,19 @@ Findings to verify:
                 temperature=0.1,
             )
             result = json.loads(response.choices[0].message.content)
-            verifications = result.get("verifications", [])
-            verified = []
-            for v in verifications:
-                idx = v.get("index")
-                verdict = v.get("verdict", "real")
-                if idx is not None and 0 <= idx < len(findings) and verdict == "real":
-                    verified.append(findings[idx])
-            if verified or verifications:
-                return verified if verified else []
+            findings = result.get("findings", [])
+            verified = [f for f in findings if f.get("verdict") == "real"]
+            for f in verified:
+                f.pop("verdict", None)
+                f.setdefault("file", filename)
+                f.setdefault("remediation", get_remediation(f.get("type", "")))
+                if "match" in f:
+                    m = f["match"]
+                    if len(m) > 24:
+                        f["match"] = m[:20] + "****"
+            return verified
         except Exception as e:
-            logger.warning(f"Groq verification failed for {filename}: {e}")
+            logger.warning(f"Groq analysis failed for {filename}: {e}")
 
     try:
         import ollama
@@ -422,19 +430,21 @@ Findings to verify:
                 options={"temperature": 0.1}
             )
             result = json.loads(response['message']['content'])
-            verifications = result.get("verifications", [])
-            verified = []
-            for v in verifications:
-                idx = v.get("index")
-                verdict = v.get("verdict", "real")
-                if idx is not None and 0 <= idx < len(findings) and verdict == "real":
-                    verified.append(findings[idx])
-            if verified or verifications:
-                return verified if verified else []
+            findings = result.get("findings", [])
+            verified = [f for f in findings if f.get("verdict") == "real"]
+            for f in verified:
+                f.pop("verdict", None)
+                f.setdefault("file", filename)
+                f.setdefault("remediation", get_remediation(f.get("type", "")))
+                if "match" in f:
+                    m = f["match"]
+                    if len(m) > 24:
+                        f["match"] = m[:20] + "****"
+            return verified
     except Exception as e:
-        logger.warning(f"Ollama verification failed for {filename}: {e}")
+        logger.warning(f"Ollama analysis failed for {filename}: {e}")
 
-    return findings
+    return []
 
 def scan_github_repo(github_url: str):
     owner, repo = parse_github_url(github_url)
@@ -513,12 +523,20 @@ def scan_github_repo(github_url: str):
             content = fetch_file_content(owner, repo, path)
             content_fetched += 1
             if content:
-                secret_findings = check_content_for_secrets(content, path)
-                if secret_findings:
-                    verified = verify_findings_with_ai(secret_findings, path, content)
-                    file_info["issues"].extend(verified)
-                    if verified:
-                        sensitive_files.append(path)
+                regex_findings = check_content_for_secrets(content, path)
+                ai_findings = ai_read_and_analyze(content, path)
+
+                all_findings = []
+                seen_keys = set()
+                for f in regex_findings + ai_findings:
+                    key = (f.get("type", ""), f.get("match", ""), f.get("line"))
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        all_findings.append(f)
+
+                if all_findings:
+                    file_info["issues"].extend(all_findings)
+                    sensitive_files.append(path)
 
         file_info["issue_count"] = len(file_info["issues"])
         issues_found += file_info["issue_count"]
