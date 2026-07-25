@@ -24,6 +24,7 @@ SENSITIVE_PATTERNS = [
     (r'gho_[A-Za-z0-9_]{36,}', "GitHub OAuth Token"),
     (r'gsk_[A-Za-z0-9_]{36,}', "Groq API Key"),
     (r'sk-[A-Za-z0-9_]{32,}', "OpenAI API Key"),
+    (r'vcp_[A-Za-z0-9_]{30,}', "Vercel Token"),
     (r'(?i)(?:sk|pk)_(?:test|live)_[A-Za-z0-9]{24,}', "Stripe Key"),
     (r'xox[bpsa]-[A-Za-z0-9\-]{24,}', "Slack Token"),
     (r'(?i)(?:private[_-]?key|-----BEGIN\s*(?:RSA\s*)?PRIVATE KEY-----)', "Private Key"),
@@ -162,9 +163,18 @@ EXCLUDED_FUNCTIONS = [
 FUNCTION_CALL_RE = re.compile(r'^[a-z_][a-z0-9_]*\(')
 IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 DIGIT_PATTERN_RE = re.compile(r'[0-9]')
+COMMENT_RE = re.compile(r'^\s*(#|//|--|\*)')
+
+PLACEHOLDER_VALUES = {"your_password", "your-api-key", "your-token", "your-secret", "your_key",
+    "your_api_key", "your_token", "your_secret", "changeme", "change_me", "change-me",
+    "todo", "tbd", "placeholder", "example", "sample", "test", "demo", "xxxxxx", "******",
+    "your-password", "your_password_here", "password123", "admin123", "test123"}
 
 def is_false_positive(match: str, label: str) -> bool:
     match_lower = match.lower().strip()
+
+    if COMMENT_RE.match(match_lower):
+        return True
 
     if re.match(r'\b(password|passwd|pwd|token|bearer)\s*:\s*(?:str|string|bytes|int|bool|float)', match_lower):
         return True
@@ -172,6 +182,9 @@ def is_false_positive(match: str, label: str) -> bool:
     if "=" in match_lower:
         value = match_lower.split("=", 1)[1].strip()
         if value.startswith(("'", '"', "`")):
+            clean_value = value.strip("\"'`")
+            if clean_value.lower() in PLACEHOLDER_VALUES:
+                return True
             return False
         if any(kw in value.lower() for kw in EXCLUDED_FUNCTIONS):
             return True

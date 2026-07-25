@@ -1509,8 +1509,8 @@ export default function DashboardPage() {
       theme === "light" ? "bg-gradient-to-br from-slate-50 to-blue-50/40 text-slate-800" : "bg-neutral-950 text-white"
     )}>
       {/* Mobile menu button */}
-      <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} className="fixed top-4 left-4 z-50 lg:hidden p-2 bg-neutral-900 border border-white/10 rounded-xl text-white">
-        <Menu size={20} />
+      <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} className="fixed top-4 left-4 z-50 lg:hidden p-2 bg-neutral-900 border border-white/10 rounded-xl text-white hover:bg-neutral-800 transition-colors">
+        {mobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       <aside className={cn(
@@ -1536,8 +1536,8 @@ export default function DashboardPage() {
           <SidebarItem icon={<Settings size={20} />} label="Settings" active={activeView === "Settings"} onClick={() => { setActiveView("Settings"); setMobileSidebarOpen(false); }} theme={theme} />
         </nav>
         {/* Close button on mobile */}
-        <button onClick={() => setMobileSidebarOpen(false)} className="lg:hidden p-4 text-neutral-500 hover:text-white border-t border-white/5 flex items-center gap-2 text-sm">
-          <ChevronDown size={16} className="rotate-90" /> Close
+        <button onClick={() => setMobileSidebarOpen(false)} className="lg:hidden p-4 text-neutral-500 hover:text-white border-t border-white/5 flex items-center gap-2 text-sm transition-colors">
+          <ChevronDown size={16} className="-rotate-90" /> Close
         </button>
       </aside>
       {mobileSidebarOpen && <div onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-30 lg:hidden" />}
