@@ -446,6 +446,110 @@ If no real issues found, return {{"findings": []}}"""
 
     return []
 
+def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
+    if not all_findings:
+        return []
+
+    key_files = [p for p in repo_file_tree if any(
+        p.endswith(ext) for ext in [".py", ".js", ".ts", ".json", ".yaml", ".yml", ".env", ".md", ".txt"]
+    )]
+    tree_summary = "\n".join(key_files[:60])
+
+    findings_summary = []
+    for f in all_findings:
+        finding_type = f.get("type", "Unknown")
+        match_val = f.get("match", "")[:30]
+        file_path = f.get("_file", f.get("file", "?"))
+        line_num = f.get("line", "?")
+        findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{line_num}")
+    findings_text = "\n".join(findings_summary[:50])
+
+    prompt = f"""You are analyzing a GitHub repository for security issues. Look at the ENTIRE repo structure and all findings together to determine if this is a REAL production project or an EXAMPLE/TUTORIAL project.
+
+REPO FILE TREE (shows what kind of project this is):
+{tree_summary}
+
+ALL FINDINGS FROM SCAN:
+{findings_text}
+
+Think holistically:
+1. What kind of project is this? (tutorial, demo, example, template, production app, library, etc.)
+2. If this is clearly a tutorial/demo/example project → MOST findings are likely EXAMPLE code
+3. If the repo has README mentioning "example", "demo", "tutorial", "sample" → it's educational
+4. Look for package.json, requirements.txt, README content to determine project nature
+5. Even in production repos, values that look like env var names (PASSWORD, TOKEN, SECRET) or obvious placeholders (your_password, changeme) are EXAMPLE
+
+Return ONLY JSON:
+{{"verdicts": [
+  {{"type": "Password", "match": "first 20 chars", "file": "path/to/file.py", "verdict": "example"}},
+  ...
+]}}
+
+Set verdict to "real" ONLY if the value is:
+- A high-entropy random string in a production config file
+- A known API key format in a non-obvious-example context
+- A database URL with real-looking credentials
+- A private key in a production deployment config
+
+Set verdict to "example" if:
+- The project appears to be a tutorial, demo, template, or educational content
+- The value is a common placeholder, env var name, or dictionary word
+- The file is clearly example/documentation code
+- "your_", "changeme", "test", "example" patterns present"""
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
+        try:
+            import openai
+            client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://api.groq.com/openai/v1",
+                timeout=20.0,
+                max_retries=1
+            )
+            response = client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+            )
+            result = json.loads(response.choices[0].message.content)
+            verdicts = result.get("verdicts", [])
+            real_ones = []
+            for v in verdicts:
+                if v.get("verdict") == "real":
+                    v["_file"] = v.pop("file", v.get("_file", ""))
+                    real_ones.append(v)
+            if real_ones:
+                return real_ones
+            return []
+        except Exception as e:
+            logger.warning(f"Holistic review failed: {e}")
+
+    try:
+        import ollama
+        if OLLAMA_AVAILABLE:
+            response = ollama.chat(
+                model='llama3',
+                messages=[{'role': 'user', 'content': prompt}],
+                format='json',
+                options={"temperature": 0.1}
+            )
+            result = json.loads(response['message']['content'])
+            verdicts = result.get("verdicts", [])
+            real_ones = []
+            for v in verdicts:
+                if v.get("verdict") == "real":
+                    v["_file"] = v.pop("file", v.get("_file", ""))
+                    real_ones.append(v)
+            if real_ones:
+                return real_ones
+            return []
+    except Exception as e:
+        logger.warning(f"Ollama holistic review failed: {e}")
+
+    return all_findings
+
 def scan_github_repo(github_url: str):
     owner, repo = parse_github_url(github_url)
     if not owner or not repo:
@@ -541,6 +645,24 @@ def scan_github_repo(github_url: str):
         file_info["issue_count"] = len(file_info["issues"])
         issues_found += file_info["issue_count"]
         scanned_files.append(file_info)
+
+    all_issues = []
+    for sf in scanned_files:
+        for iss in sf.get("issues", []):
+            all_issues.append({**iss, "_file": sf["path"]})
+
+    if all_issues:
+        verified_issues = ai_repo_holistic_review(all_issues, [f["path"] for f in scanned_files])
+        verified_paths = set()
+        for sf in scanned_files:
+            sf["issues"] = [i for i in sf.get("issues", [])
+                           if any(v.get("type") == i.get("type")
+                                  and v.get("match") == i.get("match")
+                                  and v.get("_file") == sf["path"]
+                                  for v in verified_issues)]
+
+        issues_found = sum(len(sf["issues"]) for sf in scanned_files)
+        sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
 
     score = calculate_security_score(issues_found, len(scanned_files), sensitive_files)
 
