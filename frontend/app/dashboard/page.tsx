@@ -597,7 +597,7 @@ function ReviewsView({ theme, userEmail }: { theme: string; userEmail: string })
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={cn("border rounded-3xl p-8", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}
+        className={cn("border rounded-3xl p-4 sm:p-8", theme === "light" ? "bg-white border-slate-200/80 shadow-sm" : "bg-neutral-900/50 border-white/5")}
       >
         <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
           <Star size={20} className="text-yellow-500" />
@@ -784,7 +784,7 @@ function InfrastructureView({ projectId, theme }: { projectId?: number; theme?: 
   );
 
   return (
-    <div className={cn("p-8 rounded-3xl border space-y-6", theme === "light" ? "bg-white border-slate-200/80 text-slate-800 shadow-sm" : "bg-neutral-900/50 border-white/5 text-white")}>
+    <div className={cn("p-4 sm:p-8 rounded-3xl border space-y-6", theme === "light" ? "bg-white border-slate-200/80 text-slate-800 shadow-sm" : "bg-neutral-900/50 border-white/5 text-white")}>
       <h2 className="text-xl font-bold flex items-center gap-2">
         <Server size={20} className="text-indigo-500" />
         Infrastructure Clusters
@@ -840,7 +840,7 @@ function DatabasesView({ projectId, theme }: { projectId?: number; theme?: strin
   );
 
   return (
-    <div className={cn("p-8 rounded-3xl border space-y-6", theme === "light" ? "bg-white border-slate-200/80 text-slate-800 shadow-sm" : "bg-neutral-900/50 border-white/5 text-white")}>
+    <div className={cn("p-4 sm:p-8 rounded-3xl border space-y-6", theme === "light" ? "bg-white border-slate-200/80 text-slate-800 shadow-sm" : "bg-neutral-900/50 border-white/5 text-white")}>
       <h2 className="text-xl font-bold flex items-center gap-2">
         <Database size={20} className="text-indigo-500" />
         Database Instances
@@ -979,7 +979,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
     <div className="max-w-4xl space-y-8">
       {/* Manage Projects */}
       <div className={cn(
-        "border rounded-3xl p-8 transition-all duration-500",
+        "border rounded-3xl p-4 sm:p-8 transition-all duration-500",
         theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
       )}>
         <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
@@ -989,12 +989,12 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
         <div className="space-y-3">
           {projects.length > 0 ? projects.map((p: Project) => (
             <div key={p.id} className={cn(
-              "flex items-center justify-between p-4 rounded-2xl border",
+              "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border",
               theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
             )}>
-              <div>
-                <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>{p.name}</p>
-                <p className="text-xs text-neutral-500">{p.github_url}</p>
+              <div className="min-w-0">
+                <p className={cn("font-bold text-sm truncate", theme === "light" ? "text-slate-800" : "text-white")}>{p.name}</p>
+                <p className="text-xs text-neutral-500 truncate">{p.github_url}</p>
               </div>
               <motion.button
                 onClick={() => handleSettingsDeleteProject(p.id)}
@@ -1029,7 +1029,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
 
       {/* Webhook Integration */}
       <div className={cn(
-        "border rounded-3xl p-8 transition-all duration-500",
+        "border rounded-3xl p-4 sm:p-8 transition-all duration-500",
         theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
       )}>
         <h2 className={cn("text-xl font-bold mb-6 flex items-center gap-2", theme === "light" ? "text-slate-800" : "text-white")}>
@@ -1042,32 +1042,32 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
 
         {focusedProject && (
           <div className={cn(
-            "flex items-center justify-between p-4 rounded-2xl border mb-4",
+            "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border mb-4",
             theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className={cn(
-                "w-2.5 h-2.5 rounded-full",
+                "w-2.5 h-2.5 rounded-full shrink-0",
                 focusedProject.webhook_active ? "bg-green-500" : "bg-neutral-500"
               )} />
-              <div>
-                <p className={cn("text-sm font-semibold", theme === "light" ? "text-slate-800" : "text-white")}>{focusedProject.name}</p>
+              <div className="min-w-0">
+                <p className={cn("text-sm font-semibold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{focusedProject.name}</p>
                 <p className="text-[10px] text-neutral-500">
                   {focusedProject.webhook_active ? "Webhook active — auto-scan enabled" : "No webhook configured"}
                 </p>
               </div>
             </div>
             {focusedProject.webhook_active ? (
-              <button onClick={() => handleUnregisterWebhook(focusedProject.id)} className="px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-500/30 hover:bg-red-500/20 transition-all">Remove</button>
+              <button onClick={() => handleUnregisterWebhook(focusedProject.id)} className="px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-widest border border-red-500/30 hover:bg-red-500/20 transition-all w-full sm:w-auto text-center">Remove</button>
             ) : (
-              <button onClick={() => handleRegisterWebhook(focusedProject.id)} className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-500 text-[10px] font-bold uppercase tracking-widest border border-indigo-500/30 hover:bg-indigo-500/20 transition-all">Auto-Setup</button>
+              <button onClick={() => handleRegisterWebhook(focusedProject.id)} className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-500 text-[10px] font-bold uppercase tracking-widest border border-indigo-500/30 hover:bg-indigo-500/20 transition-all w-full sm:w-auto text-center">Auto-Setup</button>
             )}
           </div>
         )}
 
         {focusedProject && focusedProject.webhook_active && focusedProject.webhook_id ? (
           <div className={cn(
-            "flex items-center gap-3 p-4 rounded-2xl border",
+            "flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 rounded-2xl border",
             theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
             <input
@@ -1075,11 +1075,11 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
               value={(() => { try { const u = new URL(focusedProject.github_url); const p = u.pathname.replace(/\.git$/, '').replace(/\/$/, '').split('/'); return `https://github.com/${p[1]}/${p[2]}/settings/hooks/${focusedProject.webhook_id}`; } catch { return focusedProject.github_url; } })()}
               onClick={(e) => { (e.target as HTMLInputElement).select(); navigator.clipboard.writeText((e.target as HTMLInputElement).value); toast.success("Copied!"); }}
               className={cn(
-                "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none cursor-pointer",
+                "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none cursor-pointer w-full",
                 theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
               )}
             />
-            <a href={(() => { try { const u = new URL(focusedProject.github_url); const p = u.pathname.replace(/\.git$/, '').replace(/\/$/, '').split('/'); return `https://github.com/${p[1]}/${p[2]}/settings/hooks/${focusedProject.webhook_id}`; } catch { return focusedProject.github_url; } })()} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 flex items-center gap-1 shrink-0 hover:underline">
+            <a href={(() => { try { const u = new URL(focusedProject.github_url); const p = u.pathname.replace(/\.git$/, '').replace(/\/$/, '').split('/'); return `https://github.com/${p[1]}/${p[2]}/settings/hooks/${focusedProject.webhook_id}`; } catch { return focusedProject.github_url; } })()} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 flex items-center justify-center gap-1 shrink-0 hover:underline">
               <ExternalLink size={12} /> View on GitHub
             </a>
           </div>
@@ -1092,7 +1092,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
               readOnly
               value="https://infradoctor-backend.vercel.app/webhooks/github"
               className={cn(
-                "flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-none",
+                "w-full px-3 py-2 rounded-xl border text-xs font-mono outline-none",
                 theme === "light" ? "bg-white border-slate-200 text-slate-700" : "bg-neutral-950 border-white/10 text-neutral-300"
               )}
             />
@@ -1101,23 +1101,23 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
       </div>
 
       <div className={cn(
-        "border rounded-3xl p-8 transition-all duration-500",
+        "border rounded-3xl p-4 sm:p-8 transition-all duration-500",
         theme === "light" ? "bg-white border-slate-200/80 shadow-sm hover:shadow-md" : "bg-neutral-900/50 border-white/5"
       )}>
         <h2 className={cn("text-xl font-bold mb-6", theme === "light" ? "text-slate-800" : "text-white")}>General Settings</h2>
         <div className="space-y-4">
           <div className={cn(
-            "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+            "flex items-center justify-between gap-3 p-4 rounded-2xl border transition-all duration-300",
             theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
-            <div>
+            <div className="min-w-0">
               <p className={cn("font-bold text-sm", theme === "light" ? "text-slate-800" : "text-white")}>Email Notifications</p>
               <p className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Receive alerts via email when incidents occur.</p>
             </div>
-            <input type="checkbox" checked={settings.notifications} onChange={(e) => updateSetting("notifications", e.target.checked)} className="accent-indigo-500 h-5 w-5" />
+            <input type="checkbox" checked={settings.notifications} onChange={(e) => updateSetting("notifications", e.target.checked)} className="accent-indigo-500 h-6 w-6 shrink-0" />
           </div>
           <div className={cn(
-            "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+            "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border transition-all duration-300",
             theme === "light" ? "bg-slate-50/80 border-slate-200/60" : "bg-white/5 border-white/5"
           )}>
             <div>
@@ -1128,7 +1128,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
               value={settings.theme} 
               onChange={(e) => updateSetting("theme", e.target.value)} 
               className={cn(
-                "border rounded-xl p-2 text-sm outline-none focus:border-indigo-500/50 transition-colors duration-300",
+                "border rounded-xl p-2.5 text-sm outline-none focus:border-indigo-500/50 transition-colors duration-300 w-full sm:w-auto",
                 theme === "light" ? "bg-white border-slate-200 text-slate-900" : "bg-neutral-950 border-white/10 text-white"
               )}
             >
@@ -1142,13 +1142,13 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
 
 
       <div className={cn(
-        "border rounded-3xl p-8 transition-all duration-500",
+        "border rounded-3xl p-4 sm:p-8 transition-all duration-500",
         theme === "light" ? "bg-white border-red-200/60 shadow-sm" : "bg-neutral-900/50 border-white/5 border-red-500/20"
       )}>
         <h2 className={cn("text-xl font-bold mb-2 text-red-500", theme === "light" ? "text-red-600" : "text-red-500")}>Danger Zone</h2>
         <p className={cn("text-xs mb-6", theme === "light" ? "text-slate-400" : "text-neutral-500")}>Irreversible actions for system maintenance.</p>
         <div className={cn(
-          "p-6 rounded-2xl border flex items-center justify-between transition-colors duration-300",
+          "p-4 sm:p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-300",
           theme === "light" ? "bg-red-50/80 border-red-100" : "bg-red-500/5 border-red-500/10"
         )}>
           <div>
@@ -1182,7 +1182,7 @@ function SettingsView({ theme, setTheme, focusedProjectId, setFocusedProjectId, 
           <button 
             onClick={handleReset}
             disabled={resetLoading}
-            className="px-6 py-3 bg-red-600 rounded-xl text-xs font-bold hover:bg-red-500 transition-colors disabled:opacity-50 text-white"
+            className="px-6 py-3 bg-red-600 rounded-xl text-xs font-bold hover:bg-red-500 transition-colors disabled:opacity-50 text-white w-full sm:w-auto text-center"
           >
             {resetLoading ? "Resetting..." : "Reset All Data"}
           </button>

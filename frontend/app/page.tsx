@@ -31,7 +31,7 @@ function FadeInView({ children, delay = 0, className }: { children: React.ReactN
 function FeatureCard({ icon, title, description, darkMode, index }: { icon: React.ReactNode; title: string; description: string; darkMode: boolean; index: number }) {
   return (
     <FadeInView delay={index * 0.1}>
-      <div className={`group p-8 rounded-3xl transition-all hover:-translate-y-1 ${darkMode ? "border border-white/5 bg-neutral-900/50 hover:bg-neutral-900" : "border border-slate-200 bg-white hover:bg-slate-50 shadow-sm"}`}>
+      <div className={`group p-4 sm:p-8 rounded-3xl transition-all hover:-translate-y-1 ${darkMode ? "border border-white/5 bg-neutral-900/50 hover:bg-neutral-900" : "border border-slate-200 bg-white hover:bg-slate-50 shadow-sm"}`}>
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${darkMode ? "bg-white/5" : "bg-slate-100"}`}>
           {icon}
         </div>
@@ -110,7 +110,7 @@ export default function LandingPage() {
           </div>
           <div className="hidden md:flex items-center gap-4">
             <Link href="/login" className={`text-sm font-medium transition-colors ${darkMode ? "hover:text-white" : "hover:text-slate-900"}`}>Sign in</Link>
-            <Link href="/register" className="px-4 py-2 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]">Get Started</Link>
+            <Link href="/register" className="px-5 py-2.5 bg-white text-black text-sm font-bold rounded-full hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]">Get Started</Link>
             <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-xl border transition-all ${darkMode ? "border-white/10 text-neutral-400 hover:text-white hover:border-white/20" : "border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-300"}`} title="Toggle theme">
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
