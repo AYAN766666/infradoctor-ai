@@ -88,18 +88,18 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <h1 className={cn("text-2xl font-bold tracking-tight", theme === "light" ? "text-slate-900" : "text-white")}>System Overview</h1>
             {activeProject && (
-              <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/50 text-indigo-500 text-xs font-bold uppercase tracking-widest">
+              <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/50 text-indigo-500 text-xs font-bold uppercase tracking-widest whitespace-nowrap">
                 📍 {activeProject.name}
               </span>
             )}
           </div>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 text-white">
+        <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 text-white w-full sm:w-auto justify-center">
           <Plus size={18} />
           Add Resource
         </button>
@@ -116,7 +116,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </motion.div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
             {[
               { value: displayScore, label: "Security Score", color: displayColor === "green" ? "text-green-500" : displayColor === "red" ? "text-red-500" : "text-neutral-400", size: "text-4xl" },
               { value: totalFiles, label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
@@ -143,20 +143,19 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-6 py-4 rounded-2xl border", theme === "light" ? "bg-white/60 border-slate-200/60" : "bg-white/5 border-white/5")}
+              className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 px-4 sm:px-6 py-4 rounded-2xl border", theme === "light" ? "bg-white/60 border-slate-200/60" : "bg-white/5 border-white/5")}
             >
               <span className={cn("text-xs flex items-center gap-1.5", theme === "light" ? "text-slate-600" : "text-neutral-400")}>
                 <span className="font-bold text-indigo-500">{activeProject.name}</span>
                 <span className={theme === "light" ? "text-slate-300" : "text-neutral-700"}>•</span>
-                Environment: <span className="font-semibold text-indigo-500">{activeProject.environment}</span>
+                <span className="hidden xs:inline">Environment:</span> <span className="font-semibold text-indigo-500">{activeProject.environment}</span>
               </span>
               {activeProject.github_url && (
                 <a href={activeProject.github_url} target="_blank" rel="noopener noreferrer" className={cn("text-xs flex items-center gap-1.5 hover:text-indigo-500 transition-colors underline underline-offset-2 decoration-dotted", theme === "light" ? "text-slate-500" : "text-neutral-500")}>
                   <GitBranch size={12} />
-                  {activeProject.github_url.replace("https://github.com/", "")}
+                  <span className="truncate max-w-[120px] sm:max-w-none">{activeProject.github_url.replace("https://github.com/", "")}</span>
                 </a>
               )}
-              <span className={cn("text-xs", theme === "light" ? "text-slate-400" : "text-neutral-600")}>Click a resource below to switch focus.</span>
             </motion.div>
           )}
         </>
@@ -188,7 +187,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                   transition={{ duration: 0.3, delay: i * 0.05 }}
                   onClick={() => setFocus(project.id)}
                   className={cn(
-                    "p-5 flex items-center justify-between group transition-colors cursor-pointer",
+                    "p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 group transition-colors cursor-pointer",
                     theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5",
                     focusedProjectId === project.id ? (theme === "light" ? "ring-2 ring-indigo-500 bg-indigo-50" : "ring-2 ring-indigo-500") : ""
                   )}
@@ -198,7 +197,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                         {project.environment === "production" ? <Globe size={20} /> : <GitBranch size={20} />}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <h4 className={cn("text-sm font-bold truncate", theme === "light" ? "text-slate-800" : "text-white")}>{project.name}</h4>
                           {focusedProjectId === project.id ? (
                             <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-500 text-[9px] font-bold uppercase tracking-widest border border-indigo-500/30 shrink-0">ACTIVE</span>
@@ -211,7 +210,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           <span className={cn("text-[10px] uppercase tracking-widest", theme === "light" ? "text-slate-400" : "text-neutral-500")}>{project.environment}</span>
                           <span className={theme === "light" ? "text-slate-200" : "text-neutral-700"}>•</span>
                           {focusedProjectId === project.id ? (
@@ -225,7 +224,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                       {scan && focusedProjectId === project.id && (
                         <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", isSecure ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20")}>{scan.score}%</span>
                       )}
@@ -233,7 +232,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); triggerScan(project.id); }}
-                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
+                        className={cn("p-2 rounded-lg transition-all active:scale-90", theme === "light" ? "text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10")}
                         title="Rescan"
                       >
                         <RotateCw size={14} />
@@ -242,7 +241,7 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); setDeletingId(project.id); deleteProject(project.id); }}
-                        className={cn("p-2 rounded-lg transition-all", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
+                        className={cn("p-2 rounded-lg transition-all active:scale-90", theme === "light" ? "text-red-500 hover:text-red-700 hover:bg-red-50" : "text-red-400 hover:text-red-300 hover:bg-red-500/10")}
                       >
                         <Trash2 size={14} />
                       </motion.button>
@@ -337,12 +336,12 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
         </div>
       )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className={cn("text-2xl font-bold tracking-tight", theme === "light" ? "text-slate-900" : "text-white")}>Security Center</h1>
           <p className={cn("text-sm mt-1", theme === "light" ? "text-slate-500" : "text-neutral-500")}>Scanned files and security issues from your repository.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={triggerScan} disabled={scanning} className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-500 transition-all disabled:opacity-50 text-white shadow-lg shadow-indigo-500/20">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button onClick={triggerScan} disabled={scanning} className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-500 transition-all disabled:opacity-50 text-white shadow-lg shadow-indigo-500/20 w-full sm:w-auto justify-center">
             {scanning ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck size={14} />}
             {scanning ? "Scanning..." : "Rescan"}
           </button>
@@ -350,7 +349,7 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         {[
           { value: score !== null ? `${score}%` : "N/A", label: "Security Score", color: isSecure ? "text-green-500" : "text-red-500", size: "text-4xl" },
           { value: totalFiles, label: "Files Scanned", color: theme === "light" ? "text-slate-900" : "text-white", size: "text-4xl" },
@@ -1509,7 +1508,7 @@ export default function DashboardPage() {
       theme === "light" ? "bg-gradient-to-br from-slate-50 to-blue-50/40 text-slate-800" : "bg-neutral-950 text-white"
     )}>
       {/* Mobile menu button */}
-      <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} className="fixed top-4 left-4 z-50 lg:hidden p-2 bg-neutral-900 border border-white/10 rounded-xl text-white hover:bg-neutral-800 transition-colors">
+      <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} className="fixed top-3 left-3 z-50 lg:hidden p-2.5 bg-neutral-900 border border-white/10 rounded-xl text-white hover:bg-neutral-800 active:scale-95 transition-all">
         {mobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
@@ -1544,7 +1543,7 @@ export default function DashboardPage() {
 
         <main className="flex-1 flex flex-col overflow-hidden">
         <header className={cn(
-          "h-16 border-b flex items-center justify-between px-4 sm:px-8 backdrop-blur-md sticky top-0 z-10 transition-colors duration-500",
+          "h-16 border-b flex items-center justify-between pl-14 sm:pl-8 pr-4 sm:pr-8 backdrop-blur-md sticky top-0 z-10 transition-colors duration-500",
           theme === "light" ? "bg-white/70 border-slate-200/60" : "bg-neutral-950/50 border-white/5"
         )}>
           <div className={cn(
@@ -1631,10 +1630,10 @@ export default function DashboardPage() {
 
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!scanning) setShowAddModal(false); }} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className={cn(
-              "relative w-full max-w-lg border rounded-3xl p-8 shadow-2xl transition-all duration-500 overflow-hidden",
+              "relative w-full max-w-lg border rounded-3xl p-4 sm:p-8 shadow-2xl transition-all duration-500 overflow-hidden",
               theme === "light" ? "bg-white border-slate-200/80 shadow-xl" : "bg-neutral-900 border-white/10"
             )}>
               {scanning ? (
@@ -1744,10 +1743,10 @@ export default function DashboardPage() {
       {/* Scan Results Modal */}
       <AnimatePresence>
         {showScanModal && scanResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowScanModal(false)} className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className={cn(
-              "relative w-full max-w-3xl max-h-[85vh] overflow-y-auto border rounded-3xl p-8 shadow-2xl",
+              "relative w-full max-w-3xl max-h-[85vh] overflow-y-auto border rounded-3xl p-4 sm:p-8 shadow-2xl",
               theme === "light" ? "bg-white border-slate-200/80 shadow-xl" : "bg-neutral-900 border-white/10"
             )}>
               <div className="flex items-center justify-between mb-6">
@@ -1765,7 +1764,7 @@ export default function DashboardPage() {
               )}
 
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
                 {[
                   { label: "Security Score", value: `${scanResult.score}%`, sub: scanResult.secure ? "Secure" : "Issues Found", color: scanResult.secure ? "text-green-500" : "text-red-500" },
                   { label: "Files", value: scanResult.total_files, sub: "Total files scanned", color: theme === "light" ? "text-slate-800" : "text-white" },
