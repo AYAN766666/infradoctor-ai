@@ -200,6 +200,22 @@ COMMON_ENV_VAR_NAMES = {
     "conn_string", "conn-str", "connstr",
 }
 
+DOC_EXTENSIONS = {".md", ".mdx", ".txt", ".rst", ".doc", ".docs", ".wiki", ".markdown"}
+EXAMPLE_CONTEXT_KEYWORDS = [
+    "example", "sample", "demo", "tutorial", "illustration",
+    "for example", "for instance", "e.g.", "i.e.",
+    "see also", "note:", "tip:", "info:", "warning:",
+    "placeholder", "dummy", "mock", "fake",
+    "configuration", "config", "setup", "setting up",
+    "how to", "guide", "walkthrough", "quickstart",
+    "understand", "learning", "teaching", "educational",
+    "like this", "as shown", "below is", "above is",
+    "schematic", "template", "template:", "sample code",
+    "you can", "you need to", "you should",
+    "replace with", "replace this", "change this",
+    "your_", "your-", "<your", "[your",
+]
+
 VALIDATION_MSG_KEYWORDS = [
     "must be", "must contain", "is required", "are required",
     "does not match", "do not match", "at least", "no more than",
@@ -209,6 +225,19 @@ VALIDATION_MSG_KEYWORDS = [
     "must have", "must include", "can't be", "cant be",
     "is taken", "already exists", "already taken",
 ]
+
+def is_doc_file(filename: str) -> bool:
+    ext = os.path.splitext(filename)[1].lower()
+    base = os.path.basename(filename).lower()
+    return ext in DOC_EXTENSIONS or base in DOC_EXTENSIONS
+
+def get_surrounding_context(lines: list, line_idx: int, window: int = 3) -> str:
+    start = max(0, line_idx - window)
+    end = min(len(lines), line_idx + window + 1)
+    return "\n".join(lines[start:end]).lower()
+
+def has_example_context(context: str) -> bool:
+    return any(kw in context for kw in EXAMPLE_CONTEXT_KEYWORDS)
 
 def value_is_placeholder(value: str) -> bool:
     clean = value.strip("\"'`").lower()
@@ -232,14 +261,23 @@ def value_is_placeholder(value: str) -> bool:
         return True
     return False
 
-def is_false_positive(match: str, label: str, line: str = "") -> bool:
+def is_false_positive(match: str, label: str, line: str = "", filename: str = "", surrounding_context: str = "") -> bool:
     match_lower = match.lower().strip()
     line_lower = line.lower().strip() if line else ""
+    context = surrounding_context.lower() if surrounding_context else line_lower
 
     if COMMENT_RE.match(line_lower) or COMMENT_RE.match(line_lower.lstrip()):
         return True
 
     if COMMENT_RE.match(match_lower):
+        return True
+
+    if has_example_context(context):
+        return True
+
+    doc_file = is_doc_file(filename) if filename else False
+
+    if doc_file and label in ("Password", "Auth Token", "Database Connection String"):
         return True
 
     if re.match(r'\b(password|passwd|pwd|token|bearer)\s*:\s*(?:str|string|bytes|int|bool|float)', match_lower):
@@ -256,6 +294,8 @@ def is_false_positive(match: str, label: str, line: str = "") -> bool:
             if label == "Password":
                 alpha_ratio = sum(c.isalpha() for c in clean_value) / max(len(clean_value), 1)
                 if alpha_ratio > 0.85 and clean_value.islower():
+                    return True
+                if DIGIT_PATTERN_RE.search(clean_value) and sum(c.isdigit() for c in clean_value) <= 3 and alpha_ratio > 0.8:
                     return True
             return False
         if any(kw in value.lower() for kw in EXCLUDED_FUNCTIONS):
@@ -289,7 +329,8 @@ def check_content_for_secrets(content: str, filename: str):
             match = match_obj.group()
             line_num = content[:match_obj.start()].count("\n") + 1
             line_content = lines[line_num - 1] if 0 < line_num <= len(lines) else ""
-            if is_false_positive(match[:40], label, line_content):
+            surrounding = get_surrounding_context(lines, line_num - 1, 2)
+            if is_false_positive(match[:40], label, line_content, filename, surrounding):
                 continue
             masked = match[:20] + "****" if len(match) > 24 else match
             findings.append({
