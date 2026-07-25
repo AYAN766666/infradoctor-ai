@@ -59,3 +59,20 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+@layer utilities {
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+}

@@ -1508,8 +1508,8 @@ export default function DashboardPage() {
       theme === "light" ? "bg-gradient-to-br from-slate-50 to-blue-50/40 text-slate-800" : "bg-neutral-950 text-white"
     )}>
       {/* Mobile menu button */}
-      <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} className="fixed top-3 left-3 z-50 lg:hidden p-2.5 bg-neutral-900 border border-white/10 rounded-xl text-white hover:bg-neutral-800 active:scale-95 transition-all">
-        {mobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+      <button onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} onTouchEnd={(e) => { e.preventDefault(); setMobileSidebarOpen(!mobileSidebarOpen); }} className="fixed top-3 left-3 z-50 lg:hidden p-3 bg-neutral-900 border border-white/10 rounded-xl text-white hover:bg-neutral-800 active:scale-95 transition-all">
+        {mobileSidebarOpen ? <X size={22} /> : <Menu size={22} />}
       </button>
 
       <aside className={cn(
@@ -1907,7 +1907,7 @@ export default function DashboardPage() {
 function SidebarItem({ icon, label, active = false, onClick, theme }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, theme?: string }) {
   return (
     <button onClick={onClick} className={cn(
-      "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+      "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98]",
       active 
         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" 
         : theme === "light"
