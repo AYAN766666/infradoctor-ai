@@ -186,7 +186,7 @@ async def github_webhook(request: Request):
         if not project:
             return {"status": "ignored", "reason": "no matching project"}
 
-        scan_result = scan_github_repo(github_url, use_ollama=False)
+        scan_result = scan_github_repo(github_url)
 
         report = ScanResult(
             project_id=project.id,

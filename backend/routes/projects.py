@@ -81,7 +81,7 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
     db.commit()
     db.refresh(db_project)
 
-    scan_result = scan_github_repo(db_project.github_url, use_ollama=False)
+    scan_result = scan_github_repo(db_project.github_url)
 
     auto_populate_infrastructure_and_databases(db_project.id, scan_result, db)
 
@@ -232,7 +232,7 @@ def trigger_scan(request: Request, project_id: int, db: Session = Depends(get_db
     if "github.com" not in parsed.netloc:
         raise HTTPException(status_code=400, detail="Only GitHub URLs (github.com) are supported.")
 
-    scan_result = scan_github_repo(db_project.github_url, use_ollama=False)
+    scan_result = scan_github_repo(db_project.github_url)
 
     auto_populate_infrastructure_and_databases(project_id, scan_result, db)
 
