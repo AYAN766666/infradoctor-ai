@@ -200,6 +200,16 @@ COMMON_ENV_VAR_NAMES = {
     "conn_string", "conn-str", "connstr",
 }
 
+VALIDATION_MSG_KEYWORDS = [
+    "must be", "must contain", "is required", "are required",
+    "does not match", "do not match", "at least", "no more than",
+    "cannot be", "may not", "should be", "should contain",
+    "enter your", "choose a", "create a", "pick a",
+    "is invalid", "is not valid", "incorrect",
+    "must have", "must include", "can't be", "cant be",
+    "is taken", "already exists", "already taken",
+]
+
 def value_is_placeholder(value: str) -> bool:
     clean = value.strip("\"'`").lower()
     if clean in PLACEHOLDER_VALUES:
@@ -213,6 +223,12 @@ def value_is_placeholder(value: str) -> bool:
     if re.fullmatch(r'[a-z]+\d{0,3}', clean) and len(clean) < 12:
         return True
     if len(clean) < 8 and not DIGIT_PATTERN_RE.search(clean):
+        return True
+    if " " in clean and len(clean) > 20:
+        return True
+    if any(kw in clean for kw in VALIDATION_MSG_KEYWORDS):
+        return True
+    if "password" in clean and " " in clean:
         return True
     return False
 
