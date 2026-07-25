@@ -27,13 +27,14 @@ SENSITIVE_PATTERNS = [
     (r'vcp_[A-Za-z0-9_]{30,}', "Vercel Token"),
     (r'(?i)(?:sk|pk)_(?:test|live)_[A-Za-z0-9]{24,}', "Stripe Key"),
     (r'xox[bpsa]-[A-Za-z0-9\-]{24,}', "Slack Token"),
-    (r'(?i)(?:private[_-]?key|-----BEGIN\s*(?:RSA\s*)?PRIVATE KEY-----)', "Private Key"),
+    (r'(?i)(?:-----BEGIN\s*(?:RSA\s*)?PRIVATE KEY-----)', "Private Key"),
+    (r'(?i)(?:private[_-]?key)\s*[=:]\s*["\'][^"\']{6,}["\']', "Private Key"),
     (r'(?i)(?:jdbc|mongodb|postgresql|mysql)://[^"\'\s]+:[^"\'\s]+@', "Database Connection String"),
 ]
 
 SENSITIVE_FILENAMES = [
     ".env", ".env.local", ".env.production", ".env.development",
-    ".env.staging", ".env.test", ".env.example",
+    ".env.staging", ".env.test",
     "credentials", "credential", "secret", "secrets", "secret.json",
     "id_rsa", "id_rsa.pub", "id_ed25519", "id_ed25519.pub",
     ".npmrc", ".netrc", ".dockercfg", ".dockerconfigjson",
