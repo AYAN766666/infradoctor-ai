@@ -356,7 +356,7 @@ def ai_read_and_analyze(content: str, filename: str) -> list:
     max_chars = 4000
     truncated = content[:max_chars] if len(content) > max_chars else content
 
-    prompt = f"""You are a security code reviewer. Read this file and find REAL security issues.
+    prompt = f"""You are a security code reviewer analyzing a GitHub repository. Read this file and find REAL security issues — NOT example/placeholder/demo values.
 
 File: {filename}
 Content:
@@ -373,18 +373,22 @@ For each finding, determine if it's:
 - **real**: An actual credential/secret that could cause damage if exposed
 - **example**: Example code, tutorial, placeholder, validation message, or educational content
 
-Rules for "example" verdict:
-- Value contains common words like "password", "secret", "test", "example", "admin"
-- If nearby lines mention "example", "demo", "tutorial", "guide", "sample"  
-- It's a validation error message ("must be", "is required")
-- Value is a placeholder like "your_password_here", "changeme", "xxxxxx"
-- Variable names like PASSWORD, TOKEN, SECRET used as env var placeholders
+CRITICAL: Be very strict about "real" verdict. Only mark as "real" if you are confident this is an active, production credential.
+
+Mark as "example" if:
+- Value contains common words like "password", "secret", "test", "example", "admin", "demo", "sample", "tutorial", "guide", "your_", "changeme"
+- It's in a documentation/README/example file
+- It's a validation error message ("must be", "is required", "enter your")
+- It's a variable name being assigned (like PASSWORD = "your_password_here")
+- It's an env var name used as a placeholder value
+- It's a default value in a config template
 
 Real secrets look like:
-- Random high-entropy strings (mixed case, digits, special chars)
-- Known API key formats: ghp_, sk-, gsk_, vcp_, AKIA, etc.
-- Database URLs with credentials: postgres://user:pass@host
-- Private keys: "-----BEGIN..."
+- High-entropy random strings (mixed upper/lower/digits/special chars, 20+ chars)
+- Known API key formats: ghp_, sk-, gsk_, vcp_, AKIA, xox[bp], etc.
+- Database URLs with actual-looking credentials: postgres://user:ComplexPass123@host
+- Private keys: "-----BEGIN..." (not in example/tutorial files)
+- Secrets that appear in non-obvious, non-documentation code paths
 
 Respond ONLY with JSON:
 {{"findings": [{{"type": "Password", "match": "first 20 chars of value", "line": 42, "severity": "high", "verdict": "real"}}]}}
@@ -465,7 +469,7 @@ def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
         findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{line_num}")
     findings_text = "\n".join(findings_summary[:50])
 
-    prompt = f"""You are analyzing a GitHub repository for security issues. Look at the ENTIRE repo structure and all findings together to determine if this is a REAL production project or an EXAMPLE/TUTORIAL project.
+    prompt = f"""You are analyzing a GitHub repository for security issues. Look at the ENTIRE repo structure and all findings together to determine what's REAL vs FAKE/EXAMPLE.
 
 REPO FILE TREE (shows what kind of project this is):
 {tree_summary}
@@ -477,8 +481,9 @@ Think holistically:
 1. What kind of project is this? (tutorial, demo, example, template, production app, library, etc.)
 2. If this is clearly a tutorial/demo/example project → MOST findings are likely EXAMPLE code
 3. If the repo has README mentioning "example", "demo", "tutorial", "sample" → it's educational
-4. Look for package.json, requirements.txt, README content to determine project nature
-5. Even in production repos, values that look like env var names (PASSWORD, TOKEN, SECRET) or obvious placeholders (your_password, changeme) are EXAMPLE
+4. Even in production repos, values that look like env var names (PASSWORD, TOKEN, SECRET) or obvious placeholders (your_password, changeme) are EXAMPLE
+5. REAL secrets look like actual keys/tokens that were accidentally committed (high-entropy, known formats, actual service credentials)
+6. KEY RULE: If a value looks like an environment variable reference (e.g., ${{ secrets.KEY }}, process.env.VAR, os.getenv("VAR")) it is NOT a real secret — it's a config template
 
 Return ONLY JSON:
 {{"verdicts": [
@@ -496,7 +501,8 @@ Set verdict to "example" if:
 - The project appears to be a tutorial, demo, template, or educational content
 - The value is a common placeholder, env var name, or dictionary word
 - The file is clearly example/documentation code
-- "your_", "changeme", "test", "example" patterns present"""
+- "your_", "changeme", "test", "example" patterns present
+- It's a variable reference like env_var, os.getenv, process.env"""
 
     api_key = os.getenv("GROQ_API_KEY")
     if api_key and len(api_key) > 10 and "YOUR" not in api_key:
@@ -646,9 +652,8 @@ def scan_github_repo(github_url: str):
     sensitive_files = []
     large_files = []
 
-    TEXT_EXTENSIONS = {'.py','.js','.ts','.jsx','.tsx','.json','.yaml','.yml','.env','.cfg','.conf','.ini','.xml','.toml','.sh','.bash','.zsh','.ps1','.bat','.cmd','.sql','.rb','.php','.go','.rs','.java','.kt','.swift','.c','.cpp','.h','.hpp','.cs','.fs','.lua','.pl','.pm','.r','.scala','.clj','.coffee','.tf','.tfvars','.dockerfile','.dockerignore','.gitignore','.gitconfig','.npmrc','.netrc','.htaccess','.htpasswd','.env.example','.env.local','.env.production','.env.development','.sops.yaml','.age.key','Makefile','Dockerfile','gradle','properties','pem','key','cert','p12','pfx','config','md','rst','txt','html','css','scss','less','svg','vue','svelte','astro'}
     content_fetched = 0
-    MAX_CONTENT_FETCH = 200
+    MAX_CONTENT_FETCH = 5000
 
     for file in files:
         path = file["path"]
@@ -683,14 +688,7 @@ def scan_github_repo(github_url: str):
             })
             large_files.append({"path": path, "size": size})
 
-        ext = os.path.splitext(path)[1].lower()
-        base = os.path.basename(path)
-        should_fetch = (
-            ext in TEXT_EXTENSIONS
-            or base in TEXT_EXTENSIONS
-            or check_sensitive_filename(path)
-            or size < LARGE_FILE_THRESHOLD
-        ) and content_fetched < MAX_CONTENT_FETCH
+        should_fetch = content_fetched < MAX_CONTENT_FETCH
 
         if should_fetch and size < 5 * 1024 * 1024:
             content = fetch_file_content(owner, repo, path)
