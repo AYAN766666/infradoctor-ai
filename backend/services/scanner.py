@@ -168,10 +168,60 @@ COMMENT_RE = re.compile(r'^\s*(#|//|--|\*)')
 PLACEHOLDER_VALUES = {"your_password", "your-api-key", "your-token", "your-secret", "your_key",
     "your_api_key", "your_token", "your_secret", "changeme", "change_me", "change-me",
     "todo", "tbd", "placeholder", "example", "sample", "test", "demo", "xxxxxx", "******",
-    "your-password", "your_password_here", "password123", "admin123", "test123"}
+    "your-password", "your_password_here", "password123", "admin123", "test123",
+    "default", "password", "pass", "p@ssw0rd", "qwerty", "abc123", "letmein",
+    "welcome", "monkey", "dragon", "master", "admin", "root", "guest", "user",
+    "123456", "12345678", "1234", "12345", "123456789", "football", "iloveyou",
+    "trustno1", "sunshine", "princess", "passwd", "pwd", "secret", "mypass",
+    "none", "null", "nil", "true", "false", "yes", "no", "key", "passphrase",
+    "PASSWORD", "TOKEN", "SECRET", "API_KEY", "ACCESS_KEY"}
 
-def is_false_positive(match: str, label: str) -> bool:
+COMMON_WEAK_PASSWORDS = {
+    "password", "123456", "12345678", "qwerty", "abc123", "monkey", "123456789",
+    "letmein", "trustno1", "dragon", "baseball", "iloveyou", "master", "sunshine",
+    "welcome", "shadow", "ashley", "football", "jesus", "michael", "ninja",
+    "mustang", "password1", "admin", "root", "guest", "pass", "pwd", "user",
+}
+
+COMMON_ENV_VAR_NAMES = {
+    "password", "passwd", "pwd", "token", "secret", "api_key", "api-key",
+    "apikey", "access_key", "access-key", "accesskey", "secret_key", "secret-key",
+    "secretkey", "auth_token", "auth-token", "authtoken", "db_password",
+    "db-password", "dbpassword", "database_password", "database-password",
+    "redis_password", "redis-password", "mysql_password", "postgres_password",
+    "jwt_secret", "jwt-secret", "jwtsecret", "session_secret", "session-secret",
+    "api_token", "api-token", "apitoken", "app_key", "app-key", "appkey",
+    "consumer_key", "consumer_secret", "oauth_token", "oauth_secret",
+    "private_key", "private-key", "privatekey", "public_key", "public-key",
+    "ssh_key", "ssh-key", "sshkey", "slack_token", "slack-token",
+    "discord_token", "discord-token", "telegram_token", "telegram-token",
+    "db_host", "db-host", "dbhost", "db_user", "db-user", "dbuser",
+    "database_url", "database-url", "databaseurl", "connection_string",
+    "conn_string", "conn-str", "connstr",
+}
+
+def value_is_placeholder(value: str) -> bool:
+    clean = value.strip("\"'`").lower()
+    if clean in PLACEHOLDER_VALUES:
+        return True
+    if clean in COMMON_WEAK_PASSWORDS:
+        return True
+    if clean in COMMON_ENV_VAR_NAMES:
+        return True
+    if re.fullmatch(r'[a-z]+', clean) and len(clean) < 12:
+        return True
+    if re.fullmatch(r'[a-z]+\d{0,3}', clean) and len(clean) < 12:
+        return True
+    if len(clean) < 8 and not DIGIT_PATTERN_RE.search(clean):
+        return True
+    return False
+
+def is_false_positive(match: str, label: str, line: str = "") -> bool:
     match_lower = match.lower().strip()
+    line_lower = line.lower().strip() if line else ""
+
+    if COMMENT_RE.match(line_lower) or COMMENT_RE.match(line_lower.lstrip()):
+        return True
 
     if COMMENT_RE.match(match_lower):
         return True
@@ -182,9 +232,15 @@ def is_false_positive(match: str, label: str) -> bool:
     if "=" in match_lower:
         value = match_lower.split("=", 1)[1].strip()
         if value.startswith(("'", '"', "`")):
-            clean_value = value.strip("\"'`")
-            if clean_value.lower() in PLACEHOLDER_VALUES:
+            if value_is_placeholder(value):
                 return True
+            clean_value = value.strip("\"'`")
+            if len(clean_value) < 6:
+                return True
+            if label == "Password":
+                alpha_ratio = sum(c.isalpha() for c in clean_value) / max(len(clean_value), 1)
+                if alpha_ratio > 0.85 and clean_value.islower():
+                    return True
             return False
         if any(kw in value.lower() for kw in EXCLUDED_FUNCTIONS):
             return True
@@ -211,12 +267,14 @@ def check_content_for_secrets(content: str, filename: str):
     findings = []
     if not content:
         return findings
+    lines = content.split("\n")
     for pattern, label in SENSITIVE_PATTERNS:
         for match_obj in re.finditer(pattern, content):
             match = match_obj.group()
-            if is_false_positive(match[:40], label):
-                continue
             line_num = content[:match_obj.start()].count("\n") + 1
+            line_content = lines[line_num - 1] if 0 < line_num <= len(lines) else ""
+            if is_false_positive(match[:40], label, line_content):
+                continue
             masked = match[:20] + "****" if len(match) > 24 else match
             findings.append({
                 "type": label,
