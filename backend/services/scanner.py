@@ -548,7 +548,7 @@ Set verdict to "example" if:
     except Exception as e:
         logger.warning(f"Ollama holistic review failed: {e}")
 
-    return all_findings
+    return []
 
 def scan_github_repo(github_url: str):
     owner, repo = parse_github_url(github_url)
@@ -653,13 +653,13 @@ def scan_github_repo(github_url: str):
 
     if all_issues:
         verified_issues = ai_repo_holistic_review(all_issues, [f["path"] for f in scanned_files])
-        verified_paths = set()
-        for sf in scanned_files:
-            sf["issues"] = [i for i in sf.get("issues", [])
-                           if any(v.get("type") == i.get("type")
-                                  and v.get("match") == i.get("match")
-                                  and v.get("_file") == sf["path"]
-                                  for v in verified_issues)]
+        if verified_issues:
+            for sf in scanned_files:
+                sf["issues"] = [i for i in sf.get("issues", [])
+                               if any(v.get("type") == i.get("type")
+                                      and v.get("match") == i.get("match")
+                                      and v.get("_file") == sf["path"]
+                                      for v in verified_issues)]
 
         issues_found = sum(len(sf["issues"]) for sf in scanned_files)
         sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
