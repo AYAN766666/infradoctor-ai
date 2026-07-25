@@ -1513,7 +1513,7 @@ export default function DashboardPage() {
       </button>
 
       <aside className={cn(
-        "w-64 border-r flex flex-col backdrop-blur-xl transition-all duration-500",
+        "w-64 shrink-0 border-r flex flex-col overflow-hidden backdrop-blur-xl transition-transform duration-300",
         theme === "light" ? "bg-white/90 border-slate-200/60 shadow-sm" : "bg-neutral-900/50 border-white/5",
         "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-40 max-lg:shadow-2xl",
         mobileSidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
@@ -1526,7 +1526,7 @@ export default function DashboardPage() {
             <span className={theme === "light" ? "bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent" : ""}>InfraDoctor</span><span className="text-indigo-500">AI</span>
           </span>
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
           <SidebarItem icon={<LayoutDashboard size={20} />} label="Overview" active={activeView === "Overview"} onClick={() => { setActiveView("Overview"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Server size={20} />} label="Infrastructure" active={activeView === "Infrastructure"} onClick={() => { setActiveView("Infrastructure"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Database size={20} />} label="Databases" active={activeView === "Databases"} onClick={() => { setActiveView("Databases"); setMobileSidebarOpen(false); }} theme={theme} />
@@ -1535,8 +1535,8 @@ export default function DashboardPage() {
           <SidebarItem icon={<Settings size={20} />} label="Settings" active={activeView === "Settings"} onClick={() => { setActiveView("Settings"); setMobileSidebarOpen(false); }} theme={theme} />
         </nav>
         {/* Close button on mobile */}
-        <button onClick={() => setMobileSidebarOpen(false)} className="lg:hidden p-4 text-neutral-500 hover:text-white border-t border-white/5 flex items-center gap-2 text-sm transition-colors">
-          <ChevronDown size={16} className="-rotate-90" /> Close
+        <button onClick={() => setMobileSidebarOpen(false)} className="lg:hidden p-4 text-neutral-500 hover:text-white border-t border-white/5 flex items-center justify-center gap-2 text-sm transition-colors">
+          <ChevronDown size={16} className="rotate-90" /> Close
         </button>
       </aside>
       {mobileSidebarOpen && <div onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-30 lg:hidden" />}
@@ -1906,16 +1906,16 @@ export default function DashboardPage() {
 
 function SidebarItem({ icon, label, active = false, onClick, theme }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, theme?: string }) {
   return (
-    <button onClick={onClick} className={cn(
-      "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98]",
+    <button type="button" onClick={onClick} className={cn(
+      "w-full flex flex-row items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-colors duration-200",
       active 
         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" 
         : theme === "light"
           ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
           : "text-neutral-400 hover:text-white hover:bg-white/5"
     )}>
-      {icon}
-      {label}
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
 }
