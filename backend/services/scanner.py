@@ -356,7 +356,7 @@ def ai_read_and_analyze(content: str, filename: str) -> list:
     max_chars = 4000
     truncated = content[:max_chars] if len(content) > max_chars else content
 
-    prompt = f"""You are a security code reviewer analyzing a GitHub repository. Read this file and find REAL security issues — NOT example/placeholder/demo values.
+    prompt = f"""You are a security code reviewer. Read this file and find ALL potential secrets — do NOT skip anything.
 
 File: {filename}
 Content:
@@ -364,35 +364,21 @@ Content:
 {truncated}
 ```
 
-Analyze the code and find:
+Analyze and find:
 1. Hardcoded secrets (API keys, passwords, tokens, database credentials)
 2. Sensitive files or data exposure
 3. Security vulnerabilities
 
-For each finding, determine if it's:
+For each finding, classify it:
 - **real**: An actual credential/secret that could cause damage if exposed
-- **example**: Example code, tutorial, placeholder, validation message, or educational content
+- **example**: Example code, tutorial, placeholder, validation message
+- **template**: Config template where value is a variable reference like ${{var}}, process.env.VAR, os.getenv("VAR")
 
-CRITICAL: Be very strict about "real" verdict. Only mark as "real" if you are confident this is an active, production credential.
-
-Mark as "example" if:
-- Value contains common words like "password", "secret", "test", "example", "admin", "demo", "sample", "tutorial", "guide", "your_", "changeme"
-- It's in a documentation/README/example file
-- It's a validation error message ("must be", "is required", "enter your")
-- It's a variable name being assigned (like PASSWORD = "your_password_here")
-- It's an env var name used as a placeholder value
-- It's a default value in a config template
-
-Real secrets look like:
-- High-entropy random strings (mixed upper/lower/digits/special chars, 20+ chars)
-- Known API key formats: ghp_, sk-, gsk_, vcp_, AKIA, xox[bp], etc.
-- Database URLs with actual-looking credentials: postgres://user:ComplexPass123@host
-- Private keys: "-----BEGIN..." (not in example/tutorial files)
-- Secrets that appear in non-obvious, non-documentation code paths
+Return ALL findings regardless of classification. Do NOT skip anything.
 
 Respond ONLY with JSON:
-{{"findings": [{{"type": "Password", "match": "first 20 chars of value", "line": 42, "severity": "high", "verdict": "real"}}]}}
-If no real issues found, return {{"findings": []}}"""
+{{"findings": [{{"type": "Password", "match": "first 20 chars", "line": 42, "severity": "high", "verdict": "real"}}]}}
+If nothing found, return {{"findings": []}}"""
 
     api_key = os.getenv("GROQ_API_KEY")
     if api_key and len(api_key) > 10 and "YOUR" not in api_key:
@@ -412,16 +398,14 @@ If no real issues found, return {{"findings": []}}"""
             )
             result = json.loads(response.choices[0].message.content)
             findings = result.get("findings", [])
-            verified = [f for f in findings if f.get("verdict") == "real"]
-            for f in verified:
-                f.pop("verdict", None)
+            for f in findings:
                 f.setdefault("file", filename)
                 f.setdefault("remediation", get_remediation(f.get("type", "")))
                 if "match" in f:
                     m = f["match"]
                     if len(m) > 24:
                         f["match"] = m[:20] + "****"
-            return verified
+            return findings
         except Exception as e:
             logger.warning(f"Groq analysis failed for {filename}: {e}")
 
@@ -436,16 +420,14 @@ If no real issues found, return {{"findings": []}}"""
             )
             result = json.loads(response['message']['content'])
             findings = result.get("findings", [])
-            verified = [f for f in findings if f.get("verdict") == "real"]
-            for f in verified:
-                f.pop("verdict", None)
+            for f in findings:
                 f.setdefault("file", filename)
                 f.setdefault("remediation", get_remediation(f.get("type", "")))
                 if "match" in f:
                     m = f["match"]
                     if len(m) > 24:
                         f["match"] = m[:20] + "****"
-            return verified
+            return findings
     except Exception as e:
         logger.warning(f"Ollama analysis failed for {filename}: {e}")
 
@@ -697,9 +679,14 @@ def scan_github_repo(github_url: str):
                 regex_findings = check_content_for_secrets(content, path)
                 ai_findings = ai_read_and_analyze(content, path)
 
+                for f in ai_findings:
+                    f["_ai"] = True
+
                 all_findings = []
                 seen_keys = set()
-                for f in regex_findings + ai_findings:
+                combined = regex_findings + ai_findings
+                combined.sort(key=lambda x: 0 if x.get("_ai") else 1)
+                for f in combined:
                     key = (f.get("type", ""), f.get("match", ""), f.get("line"))
                     if key not in seen_keys:
                         seen_keys.add(key)
@@ -713,23 +700,8 @@ def scan_github_repo(github_url: str):
         issues_found += file_info["issue_count"]
         scanned_files.append(file_info)
 
-    all_issues = []
-    for sf in scanned_files:
-        for iss in sf.get("issues", []):
-            all_issues.append({**iss, "_file": sf["path"]})
-
-    if all_issues:
-        verified_issues = ai_repo_holistic_review(all_issues, [f["path"] for f in scanned_files])
-        if verified_issues:
-            for sf in scanned_files:
-                sf["issues"] = [i for i in sf.get("issues", [])
-                               if any(v.get("type") == i.get("type")
-                                      and v.get("match") == i.get("match")
-                                      and v.get("_file") == sf["path"]
-                                      for v in verified_issues)]
-
-        issues_found = sum(len(sf["issues"]) for sf in scanned_files)
-        sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
+    issues_found = sum(len(sf["issues"]) for sf in scanned_files)
+    sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
 
     score = calculate_security_score(issues_found, len(scanned_files), sensitive_files)
 
