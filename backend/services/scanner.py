@@ -550,6 +550,74 @@ Set verdict to "example" if:
 
     return []
 
+def generate_ai_scan_report(scanned_files: list, summary: dict, file_tree: list) -> str:
+    issues_text = ""
+    issue_count = 0
+    for sf in scanned_files:
+        for iss in sf.get("issues", []):
+            if issue_count < 15:
+                issues_text += f"  - {iss['type']}: {iss['match'][:30]} in {sf['path']}:{iss.get('line', '?')}\n"
+                issue_count += 1
+
+    file_tree_text = "\n".join(file_tree[:30])
+    score = summary.get("score", 0)
+    secure = "SECURE" if score >= 80 else "ISSUES FOUND"
+    total_files = summary.get("total_files", 0)
+    issues_found = summary.get("issues_found", 0)
+
+    prompt = f"""You analyzed a GitHub repository. Generate a brief 2-3 sentence summary in Hindi/English mix explaining what you found.
+
+Scan Results:
+- Status: {secure}
+- Security Score: {score}/100
+- Total Files: {total_files}
+- Issues Found: {issues_found}
+- Sensitive Files: {summary.get('sensitive_files_count', 0)}
+
+Key Files in Repo:
+{file_tree_text}
+
+Top Issues:
+{issues_text if issues_text else "  No real security issues found."}
+
+Write a short report telling the user what this repo contains and whether there are real security issues. Use simple Hindi-English mix. 2-3 sentences max.
+If no real issues: say repo looks safe.
+If issues found: explain what type and how serious.
+Do NOT mention scores or technical details. Just plain explanation."""
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
+        try:
+            import openai
+            client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://api.groq.com/openai/v1",
+                timeout=15.0,
+                max_retries=1
+            )
+            response = client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.warning(f"AI report generation failed: {e}")
+
+    try:
+        import ollama
+        if OLLAMA_AVAILABLE:
+            response = ollama.chat(
+                model='llama3',
+                messages=[{'role': 'user', 'content': prompt}],
+                options={"temperature": 0.3}
+            )
+            return response['message']['content'].strip()
+    except Exception as e:
+        logger.warning(f"Ollama report failed: {e}")
+
+    return ""
+
 def scan_github_repo(github_url: str):
     owner, repo = parse_github_url(github_url)
     if not owner or not repo:
@@ -666,6 +734,14 @@ def scan_github_repo(github_url: str):
 
     score = calculate_security_score(issues_found, len(scanned_files), sensitive_files)
 
+    ai_report = generate_ai_scan_report(scanned_files, {
+        "total_files": len(scanned_files),
+        "total_size_hr": format_size(total_size),
+        "issues_found": issues_found,
+        "sensitive_files_count": len(set(sensitive_files)),
+        "score": score,
+    }, [f["path"] for f in scanned_files[:50]])
+
     summary = {
         "total_files": len(scanned_files),
         "total_size_bytes": total_size,
@@ -683,6 +759,7 @@ def scan_github_repo(github_url: str):
         "files": scanned_files,
         "sensitive_files": list(set(sensitive_files)),
         "large_files": large_files,
+        "ai_report": ai_report,
     }
 
 def calculate_security_score(issues: int, total_files: int, sensitive_files: list):

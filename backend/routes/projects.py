@@ -140,6 +140,7 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
             "secure": scan_result.get("summary", {}).get("secure", False),
             "sensitive_files_count": scan_result.get("summary", {}).get("sensitive_files_count", 0),
             "large_files_count": scan_result.get("summary", {}).get("large_files_count", 0),
+            "ai_report": scan_result.get("ai_report", ""),
         }
     }
 
@@ -284,6 +285,7 @@ def trigger_scan(request: Request, project_id: int, db: Session = Depends(get_db
         "sensitive_files_count": scan_result.get("summary", {}).get("sensitive_files_count", 0),
         "large_files_count": scan_result.get("summary", {}).get("large_files_count", 0),
         "error": scan_result.get("error"),
+        "ai_report": scan_result.get("ai_report", ""),
     }
 
 @router.get("/{project_id}/scan")
@@ -318,5 +320,6 @@ def get_scan_results(project_id: int, db: Session = Depends(get_db), user: User 
             "sensitive_files": report_data.get("sensitive_files", []),
             "large_files": report_data.get("large_files", []),
             "error": report_data.get("error"),
+            "ai_report": report_data.get("ai_report", ""),
         }
     }

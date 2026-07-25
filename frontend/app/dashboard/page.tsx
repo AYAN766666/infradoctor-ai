@@ -371,6 +371,21 @@ function SecurityView({ projects, focusedProjectId, theme }: { projects: Project
         ))}
       </div>
 
+      {/* AI Report */}
+      {scanData?.ai_report && (
+        <div className={cn("mt-6 p-4 sm:p-5 rounded-2xl border", theme === "light" ? "bg-indigo-50/80 border-indigo-100" : "bg-indigo-500/5 border-indigo-500/20")}>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn("text-sm font-bold mb-1", theme === "light" ? "text-slate-800" : "text-white")}>AI Report</p>
+              <p className={cn("text-sm leading-relaxed", theme === "light" ? "text-slate-600" : "text-neutral-300")}>{scanData.ai_report}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {prResult && (prResult.message || prResult.error) && (
         <div className={`p-4 rounded-2xl flex items-start gap-3 ${prResult.pr_url ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-yellow-500/10 border border-yellow-500/20"}`}>
           {prResult.pr_url ? <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" /> : <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />}
@@ -1785,6 +1800,21 @@ export default function DashboardPage() {
                   </motion.div>
                 ))}
               </div>
+
+              {/* AI Report */}
+              {scanResult.ai_report && (
+                <div className={cn("mb-6 p-4 sm:p-5 rounded-2xl border", theme === "light" ? "bg-indigo-50/80 border-indigo-100" : "bg-indigo-500/5 border-indigo-500/20")}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="text-white"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("text-sm font-bold mb-1", theme === "light" ? "text-slate-800" : "text-white")}>AI Report</p>
+                      <p className={cn("text-sm leading-relaxed", theme === "light" ? "text-slate-600" : "text-neutral-300")}>{scanResult.ai_report}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Files with Issues */}
               {(scanResult.files || []).filter((f: any) => f.issue_count > 0).length > 0 && (
