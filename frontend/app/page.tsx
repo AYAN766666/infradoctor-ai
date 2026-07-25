@@ -123,6 +123,7 @@ export default function LandingPage() {
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
+        </div>
         {mobileOpen && (
           <div className={`md:hidden border-t ${darkMode ? "border-white/5 bg-neutral-950/95 backdrop-blur-md" : "border-slate-200 bg-white/95 backdrop-blur-md"}`}>
             <div className="px-4 sm:px-6 py-4 space-y-3">
@@ -139,7 +140,6 @@ export default function LandingPage() {
             </div>
           </div>
         )}
-        </div>
       </nav>
 
       {/* Hero */}
