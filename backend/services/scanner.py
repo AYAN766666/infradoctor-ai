@@ -573,52 +573,41 @@ def is_demo_value(value: str) -> bool:
 
 
 def ai_read_and_analyze(content: str, filename: str) -> list:
-    if not content or len(content.strip()) < 10:
+    return []
+
+def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
+    if not all_findings:
         return []
 
-    ext = os.path.splitext(filename)[1].lower()
-    doc_exts = {".md", ".txt", ".rst", ".mdx", ".html"}
-    if ext in doc_exts:
-        return []
+    key_files = [p for p in repo_file_tree if any(
+        p.endswith(ext) for ext in [".py", ".js", ".ts", ".json", ".yaml", ".yml", ".env", ".md", ".txt"]
+    )]
+    tree_summary = "\n".join(key_files[:80])
 
-    max_chars = 6000
-    truncated = content[:max_chars] if len(content) > max_chars else content
-    lines = content.split("\n")
+    findings_summary = []
+    for f in all_findings:
+        finding_type = f.get("type", "Unknown")
+        match_val = f.get("match", "")[:30]
+        file_path = f.get("_file", f.get("file", "?"))
+        findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{f.get('line', '?')}")
+    findings_text = "\n".join(findings_summary[:60])
 
-    prompt = f"""You are a security code analyzer. Your job is to find REAL hardcoded secrets.
+    prompt = f"""You are an expert security reviewer. Review these findings from a GitHub repo scan. Your task is to determine if each finding is a REAL credential leak or just DEMO/EXAMPLE code.
 
-File: {filename}
+Context — this is the repo's file structure:
+{tree_summary}
 
-Content:
-```
-{truncated}
-```
+Findings found by the scanner:
+{findings_text}
 
-Instructions:
-1. Read the FULL content carefully
-2. Look at EACH line that contains a password, key, token, or secret value
-3. Is this a REAL credential (accidentally committed) or just DEMO/EXAMPLE code?
+Read each finding carefully. Think about the file path and the context. Decide:
+- "real" → This is an actual credential that was accidentally committed. A real API key, real password, real token that appears to be functional.
+- "example" → This is clearly demo code, tutorial example, placeholder text, or template. Values like "your_api_key_here", "changeme", "password123", or values in doc files.
 
-Mark as DEMO/EXAMPLE if ANY of these are true:
-  - Value contains "your_", "changeme", "placeholder", "example", "demo", "test_"
-  - Value has "YOUR_" or looks like "ghp_YOUR_NEW_TOKEN_HERE"
-  - The file is a config template (.env.example, config.template.js, etc.)
-  - Value is short (< 8 chars) and simple like "password123", "admin"
-  - The file explains how to SET UP credentials (tutorial/doc)
-  - The key starts with your_ or YOUR_ pattern
+IMPORTANT: Only mark as "real" if you are confident the value is an actual deployed credential. When in doubt, mark as "example".
 
-Mark as REAL only if:
-  - The value looks like a high-entropy actual key/token (random chars, 20+ length)
-  - It's NOT in any demo/placeholder/tutorial context
-  - The file is an actual config file (not a template/example)
-
-Mark as TEMPLATE if:
-  - Uses env vars (${{VAR}}, process.env.VAR, os.getenv, etc.)
-  - Uses variable references instead of hardcoded values
-
-Respond ONLY with JSON array. For each finding include: type, match (first 20 chars), line number, severity (critical/high/medium), verdict (real/demo/template), and reason.
-{{"findings": [{{"type":"GitHub Token","match":"ghp_xxxxx","line":15,"severity":"critical","verdict":"demo","reason":"example token in tutorial"}}]}}
-If no real/hardcoded secrets: return {{"findings": []}}"""
+Return JSON:
+{{"verdicts": [{{"type": "GitHub Token", "match": "ghp_xxx", "file": "path/to/file", "verdict": "example"}}]}}"""
 
     result = groq_chat(
         messages=[{"role": "user", "content": prompt}],
@@ -629,92 +618,32 @@ If no real/hardcoded secrets: return {{"findings": []}}"""
     if OLLAMA_AVAILABLE and result is None:
         try:
             import ollama
+            from json import loads as jloads
             response = ollama.chat(
                 model='llama3',
                 messages=[{'role': 'user', 'content': prompt}],
                 format='json',
                 options={"temperature": 0.1}
             )
-            from json import loads
-            data = loads(response['message']['content'])
-            findings = data.get("findings", [])
-        except Exception as e:
-            logger.warning(f"Ollama analysis failed for {filename}: {e}")
-            findings = []
+            data = jloads(response['message']['content'])
+            verdicts = data.get("verdicts", [])
+        except Exception:
+            verdicts = []
     elif result:
         try:
             data = json.loads(result)
-            findings = data.get("findings", [])
-        except json.JSONDecodeError:
-            logger.warning(f"AI response parse failed for {filename}")
-            findings = []
-    else:
-        findings = []
-
-    for f in findings:
-        f.setdefault("file", filename)
-        f.setdefault("remediation", get_remediation(f.get("type", "")))
-        f.setdefault("_ai", True)
-        if "match" in f:
-            m = f["match"]
-            if len(m) > 24:
-                f["match"] = m[:20] + "****"
-    return findings
-
-def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
-    if not all_findings:
-        return []
-
-    key_files = [p for p in repo_file_tree if any(
-        p.endswith(ext) for ext in [".py", ".js", ".ts", ".json", ".yaml", ".yml", ".env", ".md", ".txt"]
-    )]
-    tree_summary = "\n".join(key_files[:60])
-
-    findings_summary = []
-    for f in all_findings:
-        finding_type = f.get("type", "Unknown")
-        match_val = f.get("match", "")[:30]
-        file_path = f.get("_file", f.get("file", "?"))
-        findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{f.get('line', '?')}")
-    findings_text = "\n".join(findings_summary[:50])
-
-    prompt = f"""Review ALL findings from a GitHub repo scan. Identify what's REAL vs FAKE.
-
-REPO FILES:
-{tree_summary}
-
-FINDINGS:
-{findings_text}
-
-For each finding, decide:
-- "real" = actual credential that was accidentally committed (high-entropy keys, valid-looking tokens, real DB URLs)
-- "example" = placeholder, tutorial, demo, example code, env var names, obvious test values
-- "template" = config template using variable references like ${{}}, os.getenv, process.env
-
-Return JSON:
-{{"verdicts": [
-  {{"type": "Password", "match": "xxx", "file": "path", "verdict": "example"}}
-]}}"""
-
-    result = groq_chat(
-        messages=[{"role": "user", "content": prompt}],
-        response_format="json",
-        temperature=0.1
-    )
-    if result:
-        try:
-            data = json.loads(result)
             verdicts = data.get("verdicts", [])
-            real_ones = []
-            for v in verdicts:
-                if v.get("verdict") == "real":
-                    v["_file"] = v.pop("file", v.get("_file", ""))
-                    real_ones.append(v)
-            return real_ones
         except json.JSONDecodeError:
-            pass
+            verdicts = []
+    else:
+        verdicts = []
 
-    return []
+    result_list = []
+    for v in verdicts:
+        file_path = v.pop("file", v.get("_file", ""))
+        v["_file"] = file_path
+        result_list.append(v)
+    return result_list
 
 def generate_ai_scan_report(scanned_files: list, summary: dict, file_tree: list) -> str:
     real_issues_list = []
@@ -747,7 +676,7 @@ Key files seen:
 {"ONLY DEMO/EXAMPLE:" if example_issues_list else ""}
 {chr(10).join(example_issues_list) if example_issues_list else ""}
 
-Explain: Is this a real project or just demo/tutorial code? Are any values actually real credentials or just placeholder text? Keep it simple Hinglish (Hindi+English mixed), 2-4 lines max. Be honest - if only demo values found, say repo is safe."""
+Explain: Is this a real project or demo code? Are values actual credentials or just placeholder text? Keep it simple Hinglish, 2-4 lines max."""
 
     result = groq_chat(
         messages=[{"role": "user", "content": prompt}],
@@ -876,36 +805,21 @@ def scan_github_repo(github_url: str):
             return idx, []
         try:
             regex_findings = check_content_for_secrets(content, path)
-            ai_findings = ai_read_and_analyze(content, path)
         except Exception as e:
             logger.warning(f"Analysis failed for {path}: {e}")
             return idx, []
-        for f in ai_findings:
-            f["_ai"] = True
-        all_findings = []
-        seen_keys = set()
-        combined = regex_findings + ai_findings
-        for f in combined:
-            key = (f.get("type", ""), f.get("match", ""), f.get("line"))
-            if key not in seen_keys:
-                seen_keys.add(key)
-                all_findings.append(f)
 
-        final_findings = []
-        for f in all_findings:
+        for f in regex_findings:
             match_val = f.get("match", "")
-            if f.get("_ai") and f.get("verdict") in ("example", "demo"):
-                f["severity"] = "low"
+            full_value = match_val.replace("****", "")
+            if f.get("verdict") == "example":
+                pass
+            elif is_demo_value(full_value) or value_is_placeholder(full_value):
                 f["verdict"] = "example"
-            elif not f.get("_ai") and f.get("_source") == "regex":
-                full_value = match_val.replace("****", "")
-                if is_demo_value(full_value) or value_is_placeholder(full_value):
-                    f["verdict"] = "example"
-                    f["severity"] = "low"
-                elif f.get("verdict") not in ("example",):
-                    f["verdict"] = "unknown"
-            final_findings.append(f)
-        return idx, final_findings
+                f["severity"] = "low"
+            else:
+                f["verdict"] = "unknown"
+        return idx, regex_findings
 
     processed = 0
     skipped_errors = 0
@@ -941,11 +855,35 @@ def scan_github_repo(github_url: str):
     scanned_files = file_infos
 
     issues_found = sum(len(sf["issues"]) for sf in scanned_files)
+    sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
+
+    all_findings = []
+    for sf in scanned_files:
+        for iss in sf.get("issues", []):
+            all_findings.append(iss)
+
+    ai_verdicts = ai_repo_holistic_review(all_findings, [f["path"] for f in scanned_files])
+
+    if ai_verdicts:
+        ai_overrides = {}
+        for v in ai_verdicts:
+            key = (v.get("type", ""), v.get("match", ""), v.get("_file", ""))
+            ai_overrides[key] = v.get("verdict", "")
+
+        for sf in scanned_files:
+            for iss in sf.get("issues", []):
+                key = (iss.get("type", ""), iss.get("match", ""), sf["path"])
+                if key in ai_overrides:
+                    iss["verdict"] = ai_overrides[key]
+                    if ai_overrides[key] == "example":
+                        iss["severity"] = "low"
+                    elif ai_overrides[key] == "real":
+                        iss["severity"] = "critical" if "key" in iss.get("type","").lower() or "token" in iss.get("type","").lower() else "high"
+
     real_issues = sum(
         1 for sf in scanned_files for iss in sf.get("issues", [])
-        if iss.get("verdict") != "example"
+        if iss.get("verdict") not in ("example", "demo")
     )
-    sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
     score = calculate_security_score(real_issues, len(scanned_files), sensitive_files)
 
     ai_report = generate_ai_scan_report(scanned_files, {
