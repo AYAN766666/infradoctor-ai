@@ -24,6 +24,7 @@ try:
     import models.infrastructure
     import models.database
     import models.setting
+    import models.login_activity
 except Exception as e:
     _import_error = f"{e}\n{traceback.format_exc()}"
 

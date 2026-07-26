@@ -1,31 +1,32 @@
 import time
 from datetime import date
+from sqlalchemy.orm import Session
+from db.db import SessionLocal
+from models.login_activity import LoginActivity
 
 class LoginTracker:
-    def __init__(self):
-        self._events: list[dict] = []
-        self._today_count: int = 0
-        self._today_date: date = date.today()
-
     def record(self, user_name: str, action: str):
-        today = date.today()
-        if today != self._today_date:
-            self._today_date = today
-            self._today_count = 0
-        self._today_count += 1
-        self._events.insert(0, {
-            "name": user_name,
-            "action": action,
-            "time": time.strftime("%H:%M"),
-            "date": str(today),
-        })
-        if len(self._events) > 50:
-            self._events.pop()
+        db: Session = SessionLocal()
+        try:
+            today = str(date.today())
+            now = time.strftime("%H:%M")
+            entry = LoginActivity(user_name=user_name, action=action, time=now, date=today)
+            db.add(entry)
+            db.commit()
+        finally:
+            db.close()
 
     def get_recent(self, limit: int = 7):
-        return {
-            "today_count": self._today_count,
-            "recent": self._events[:limit],
-        }
+        db: Session = SessionLocal()
+        try:
+            today = str(date.today())
+            today_count = db.query(LoginActivity).filter(LoginActivity.date == today).count()
+            recent = db.query(LoginActivity).order_by(LoginActivity.id.desc()).limit(limit).all()
+            return {
+                "today_count": today_count,
+                "recent": [{"name": r.user_name, "action": r.action, "time": r.time, "date": r.date} for r in recent],
+            }
+        finally:
+            db.close()
 
 login_tracker = LoginTracker()
