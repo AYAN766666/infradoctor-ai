@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "@/components/ui/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://infradoctor-backend.vercel.app";
@@ -31,9 +32,9 @@ import {
   Menu,
   ChevronDown,
   RotateCw,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LoginActivityCard } from "@/components/ui/LoginActivityCard";
 
 // Types
 interface Project {
@@ -161,9 +162,6 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
           )}
         </>
       )}
-
-      {/* Login Activity */}
-      <LoginActivityCard theme={theme} />
 
       {/* Active Resources */}
       <motion.div
@@ -1581,6 +1579,13 @@ export default function DashboardPage() {
           <SidebarItem icon={<ShieldCheck size={20} />} label="Security" active={activeView === "Security"} onClick={() => { setActiveView("Security"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<MessageCircle size={20} />} label="Reviews" active={activeView === "Reviews"} onClick={() => { setActiveView("Reviews"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Settings size={20} />} label="Settings" active={activeView === "Settings"} onClick={() => { setActiveView("Settings"); setMobileSidebarOpen(false); }} theme={theme} />
+          <Link href="/activity" className={cn(
+            "w-full flex flex-row items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-colors duration-200",
+            theme === "light" ? "text-indigo-600 hover:bg-indigo-50" : "text-indigo-400 hover:bg-white/5"
+          )}>
+            <Users size={20} />
+            Activity
+          </Link>
         </nav>
         {/* Close button on mobile */}
         <button onClick={() => setMobileSidebarOpen(false)} className="lg:hidden p-4 text-neutral-500 hover:text-white border-t border-white/5 flex items-center justify-center gap-2 text-sm transition-colors">
