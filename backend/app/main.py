@@ -48,6 +48,10 @@ if _import_error is None:
                     sql = "ALTER TABLE projects ADD COLUMN webhook_active INTEGER DEFAULT 0" if engine.dialect.name == "sqlite" else "ALTER TABLE projects ADD COLUMN webhook_active INTEGER DEFAULT 0"
                     with engine.begin() as conn:
                         conn.execute(text(sql))
+                if "login_activity" in inspector.get_table_names():
+                    with engine.begin() as conn:
+                        conn.execute(text("DELETE FROM login_activity"))
+                        logger.info("Cleared login_activity table")
         except Exception as e:
             logger.error(f"Migration: {e}")
     except Exception as e:
