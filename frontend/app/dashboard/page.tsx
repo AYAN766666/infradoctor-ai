@@ -1354,6 +1354,11 @@ export default function DashboardPage() {
     setBackendError(null);
     try {
       const pRes = await fetch(`${API_BASE}/projects/`, { headers: authHeaders() });
+      if (pRes.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
       if (!pRes.ok) throw new Error(`Backend error: ${pRes.statusText}`);
       const pData = await pRes.json();
       const pList = pData.projects || pData;
@@ -1478,11 +1483,17 @@ export default function DashboardPage() {
       };
       
       setScanningProgress("Fetching repository data...");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
+      
       const res = await fetch(`${API_BASE}/projects/`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       const data = await res.json();
       
@@ -1502,15 +1513,25 @@ export default function DashboardPage() {
           setViewingScanProject(data.project.id);
           setShowScanModal(true);
         }
+      } else if (res.status === 401) {
+        setScanning(false);
+        setScanningProgress("");
+        toast.error("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        router.push("/login");
       } else {
         setScanning(false);
         setScanningProgress("");
-        toast.error("Failed to add project: " + (data.detail ? JSON.stringify(data.detail) : "Unknown error"));
+        toast.error("Failed to add project: " + (data.detail || data.error || "Unknown error"));
       }
-    } catch (err) {
+    } catch (err: any) {
       setScanning(false);
       setScanningProgress("");
-      toast.error("Network error while adding project");
+      if (err.name === "AbortError") {
+        toast.error("Operation timed out. The repository may be too large.");
+      } else {
+        toast.error("Network error while adding project");
+      }
     }
   };
 
@@ -1532,7 +1553,10 @@ export default function DashboardPage() {
 
   const triggerScan = async (projectId: number) => {
     try {
-      const res = await fetch(`${API_BASE}/projects/${projectId}/scan`, { method: "POST", headers: authHeaders() });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
+      const res = await fetch(`${API_BASE}/projects/${projectId}/scan`, { method: "POST", headers: authHeaders(), signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = await res.json();
       if (res.ok) {
         toast.success("Scan completed!");
@@ -1540,11 +1564,19 @@ export default function DashboardPage() {
         setViewingScanProject(projectId);
         setShowScanModal(true);
         await fetchData();
+      } else if (res.status === 401) {
+        toast.error("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        router.push("/login");
       } else {
-        toast.error(data.detail || "Scan failed");
+        toast.error(data.detail || data.error || "Scan failed");
       }
-    } catch (err) {
-      toast.error("Network error during scan");
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        toast.error("Scan timed out. The repository may be too large.");
+      } else {
+        toast.error("Network error during scan. Check backend connection.");
+      }
     }
   };
 

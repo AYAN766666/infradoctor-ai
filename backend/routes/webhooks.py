@@ -186,7 +186,17 @@ async def github_webhook(request: Request):
         if not project:
             return {"status": "ignored", "reason": "no matching project"}
 
-        scan_result = scan_github_repo(github_url)
+        try:
+            scan_result = scan_github_repo(github_url)
+        except Exception as e:
+            logger.error(f"Webhook scan failed for {github_url}: {e}")
+            scan_result = {
+                "status": "error",
+                "error": f"Scan failed: {str(e)[:200]}",
+                "files": [],
+                "summary": {"total_files": 0, "issues_found": 0, "score": 0},
+                "ai_report": "",
+            }
 
         report = ScanResult(
             project_id=project.id,

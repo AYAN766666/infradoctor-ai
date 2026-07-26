@@ -81,7 +81,17 @@ def create_project(request: Request, project: ProjectCreate, db: Session = Depen
     db.commit()
     db.refresh(db_project)
 
-    scan_result = scan_github_repo(db_project.github_url)
+    try:
+        scan_result = scan_github_repo(db_project.github_url)
+    except Exception as e:
+        logger.error(f"Scan failed for {db_project.github_url}: {e}")
+        scan_result = {
+            "status": "error",
+            "error": f"Scan failed: {str(e)[:200]}",
+            "files": [],
+            "summary": {"total_files": 0, "issues_found": 0, "score": 0, "sensitive_files_count": 0, "large_files_count": 0, "secure": False},
+            "ai_report": "",
+        }
 
     auto_populate_infrastructure_and_databases(db_project.id, scan_result, db)
 
@@ -233,7 +243,17 @@ def trigger_scan(request: Request, project_id: int, db: Session = Depends(get_db
     if "github.com" not in parsed.netloc:
         raise HTTPException(status_code=400, detail="Only GitHub URLs (github.com) are supported.")
 
-    scan_result = scan_github_repo(db_project.github_url)
+    try:
+        scan_result = scan_github_repo(db_project.github_url)
+    except Exception as e:
+        logger.error(f"Scan failed for {db_project.github_url}: {e}")
+        scan_result = {
+            "status": "error",
+            "error": f"Scan failed: {str(e)[:200]}",
+            "files": [],
+            "summary": {"total_files": 0, "issues_found": 0, "score": 0, "sensitive_files_count": 0, "large_files_count": 0, "secure": False},
+            "ai_report": "",
+        }
 
     auto_populate_infrastructure_and_databases(project_id, scan_result, db)
 

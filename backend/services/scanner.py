@@ -3,6 +3,7 @@ import json
 import os
 import fnmatch
 import requests
+import concurrent.futures
 from urllib.parse import urlparse
 from services.logger import logger
 
@@ -126,18 +127,19 @@ def fetch_repo_tree(owner: str, repo: str):
         return None
 
 def fetch_file_content(owner: str, repo: str, path: str):
-    url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/{path}"
-    try:
-        resp = requests.get(url, timeout=15)
-        if resp.status_code == 404:
-            url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
-            resp = requests.get(url, timeout=15)
-        if resp.status_code == 200:
-            return resp.text
-        return None
-    except Exception as e:
-        logger.error(f"Failed to fetch file {path}: {e}")
-        return None
+    urls = [
+        f"https://raw.githubusercontent.com/{owner}/{repo}/master/{path}",
+        f"https://raw.githubusercontent.com/{owner}/{repo}/main/{path}",
+    ]
+    for url in urls:
+        try:
+            resp = requests.get(url, timeout=8)
+            if resp.status_code == 200:
+                return resp.text
+        except Exception:
+            continue
+    logger.error(f"Failed to fetch file {path} (both master/main)")
+    return None
 
 def check_sensitive_filename(filename: str):
     name_lower = filename.lower().replace("\\", "/")
@@ -622,9 +624,28 @@ def scan_github_repo(github_url: str):
     if files is None:
         return {
             "status": "error",
-            "error": "Could not fetch repository. Make sure it exists and is public.",
+            "error": "Could not fetch repository. Make sure it exists and is public. Check your GITHUB_TOKEN.",
             "files": [],
             "summary": {}
+        }
+
+    if not files:
+        return {
+            "status": "completed",
+            "summary": {
+                "total_files": 0,
+                "total_size_bytes": 0,
+                "total_size_hr": "0 B",
+                "issues_found": 0,
+                "sensitive_files_count": 0,
+                "large_files_count": 0,
+                "score": 100,
+                "secure": True,
+            },
+            "files": [],
+            "sensitive_files": [],
+            "large_files": [],
+            "ai_report": "Repository is empty — no files to scan.",
         }
 
     scanned_files = []
@@ -635,9 +656,13 @@ def scan_github_repo(github_url: str):
     large_files = []
 
     content_fetched = 0
-    MAX_CONTENT_FETCH = 5000
+    MAX_CONTENT_FETCH = 2000
+    MAX_FILES_TO_SCAN = 3000
 
-    for file in files:
+    files_to_process = files[:MAX_FILES_TO_SCAN]
+
+    file_infos = []
+    for file in files_to_process:
         path = file["path"]
         size = file.get("size", 0)
         if not use_repo_total:
@@ -670,35 +695,53 @@ def scan_github_repo(github_url: str):
             })
             large_files.append({"path": path, "size": size})
 
-        should_fetch = content_fetched < MAX_CONTENT_FETCH
+        file_infos.append(file_info)
 
-        if should_fetch and size < 5 * 1024 * 1024:
-            content = fetch_file_content(owner, repo, path)
-            content_fetched += 1
-            if content:
-                regex_findings = check_content_for_secrets(content, path)
-                ai_findings = ai_read_and_analyze(content, path)
+    fetch_candidates = [
+        (i, file) for i, file in enumerate(files_to_process)
+        if content_fetched < MAX_CONTENT_FETCH
+        and file.get("size", 0) < 5 * 1024 * 1024
+        and file.get("size", 0) <= LARGE_FILE_THRESHOLD
+    ]
 
-                for f in ai_findings:
-                    f["_ai"] = True
+    def fetch_and_analyze(idx, file_entry):
+        path = file_entry["path"]
+        content = fetch_file_content(owner, repo, path)
+        if not content:
+            return idx, []
+        regex_findings = check_content_for_secrets(content, path)
+        ai_findings = ai_read_and_analyze(content, path)
+        for f in ai_findings:
+            f["_ai"] = True
+        all_findings = []
+        seen_keys = set()
+        combined = regex_findings + ai_findings
+        combined.sort(key=lambda x: 0 if x.get("_ai") else 1)
+        for f in combined:
+            key = (f.get("type", ""), f.get("match", ""), f.get("line"))
+            if key not in seen_keys:
+                seen_keys.add(key)
+                all_findings.append(f)
+        return idx, all_findings
 
-                all_findings = []
-                seen_keys = set()
-                combined = regex_findings + ai_findings
-                combined.sort(key=lambda x: 0 if x.get("_ai") else 1)
-                for f in combined:
-                    key = (f.get("type", ""), f.get("match", ""), f.get("line"))
-                    if key not in seen_keys:
-                        seen_keys.add(key)
-                        all_findings.append(f)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        future_map = {
+            executor.submit(fetch_and_analyze, idx, fe): idx
+            for idx, fe in fetch_candidates
+        }
+        for future in concurrent.futures.as_completed(future_map, timeout=55):
+            try:
+                idx, findings = future.result()
+                if findings:
+                    file_infos[idx]["issues"].extend(findings)
+                    sensitive_files.append(file_infos[idx]["path"])
+            except Exception as e:
+                logger.warning(f"Parallel fetch/analyze failed: {e}")
 
-                if all_findings:
-                    file_info["issues"].extend(all_findings)
-                    sensitive_files.append(path)
-
-        file_info["issue_count"] = len(file_info["issues"])
-        issues_found += file_info["issue_count"]
-        scanned_files.append(file_info)
+    for fi in file_infos:
+        fi["issue_count"] = len(fi["issues"])
+        issues_found += fi["issue_count"]
+    scanned_files = file_infos
 
     issues_found = sum(len(sf["issues"]) for sf in scanned_files)
     sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
