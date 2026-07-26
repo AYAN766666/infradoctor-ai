@@ -283,7 +283,9 @@ PLACEHOLDER_VALUES = {"your_password", "your-api-key", "your-token", "your-secre
     "123456", "12345678", "1234", "12345", "123456789", "football", "iloveyou",
     "trustno1", "sunshine", "princess", "passwd", "pwd", "secret", "mypass",
     "none", "null", "nil", "true", "false", "yes", "no", "key", "passphrase",
-    "PASSWORD", "TOKEN", "SECRET", "API_KEY", "ACCESS_KEY"}
+    "PASSWORD", "TOKEN", "SECRET", "API_KEY", "ACCESS_KEY",
+    "***", "xxx", "your_token_here", "your_key_here", "your_secret_here",
+    "put_your", "enter_your", "insert_your", "replace_with"}
 
 COMMON_WEAK_PASSWORDS = {
     "password", "123456", "12345678", "qwerty", "abc123", "monkey", "123456789",
@@ -368,6 +370,14 @@ def value_is_placeholder(value: str) -> bool:
         return True
     if "password" in clean and " " in clean:
         return True
+    if "your_" in clean or "your-" in clean:
+        return True
+    if clean.startswith("ghp_") and "your_new" in clean:
+        return True
+    if clean.startswith("AKIA") and "example" in clean.lower():
+        return True
+    if "example" in clean and len(clean) < 25:
+        return True
     return False
 
 def is_false_positive(match: str, label: str, line: str = "", filename: str = "", surrounding_context: str = "") -> bool:
@@ -433,6 +443,7 @@ def check_content_for_secrets(content: str, filename: str):
     if not content:
         return findings
     lines = content.split("\n")
+    ext = os.path.splitext(filename)[1].lower()
     for pattern, label in SENSITIVE_PATTERNS:
         for match_obj in re.finditer(pattern, content):
             match = match_obj.group()
@@ -441,16 +452,103 @@ def check_content_for_secrets(content: str, filename: str):
             surrounding = get_surrounding_context(lines, line_num - 1, 2)
             if is_false_positive(match[:40], label, line_content, filename, surrounding):
                 continue
+
+            full_value = match.split("=", 1)[-1].strip("\"' ") if "=" in match else match
+            is_placeholder = value_is_placeholder(full_value)
+
+            verdict = "example" if is_placeholder else "unknown"
+            severity = "low" if is_placeholder else (
+                "critical" if any(k in label.lower() for k in ["key", "token", "secret", "private"])
+                else "high"
+            )
+
             masked = match[:20] + "****" if len(match) > 24 else match
             findings.append({
                 "type": label,
                 "match": masked,
                 "file": filename,
                 "line": line_num,
-                "severity": "critical" if "key" in label.lower() or "token" in label.lower() or "secret" in label.lower() or "private" in label.lower() else "high",
+                "severity": severity,
+                "verdict": verdict,
                 "remediation": get_remediation(label),
+                "_source": "regex",
             })
     return findings
+
+_groq_client = None
+
+def get_groq_client():
+    global _groq_client
+    if _groq_client is not None:
+        return _groq_client
+    api_key = os.getenv("GROQ_API_KEY")
+    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
+        try:
+            from groq import Groq
+            _groq_client = Groq(api_key=api_key, timeout=30.0)
+            return _groq_client
+        except ImportError:
+            try:
+                import openai
+                _groq_client = openai.OpenAI(
+                    api_key=api_key,
+                    base_url="https://api.groq.com/openai/v1",
+                    timeout=30.0,
+                    max_retries=2
+                )
+                return _groq_client
+            except ImportError:
+                pass
+    return None
+
+def groq_chat(messages: list, response_format: str = None, model: str = "llama3-70b-8192", temperature: float = 0.1):
+    client = get_groq_client()
+    if client is None:
+        return None
+
+    kwargs = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "timeout": 30,
+    }
+
+    client_type = type(client).__name__
+    if client_type == "Groq":
+        try:
+            if response_format == "json":
+                kwargs["response_format"] = {"type": "json_object"}
+            elif response_format == "text":
+                pass
+            response = client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.warning(f"Groq SDK failed: {e}")
+            try:
+                import openai
+                alt_client = openai.OpenAI(
+                    api_key=os.getenv("GROQ_API_KEY"),
+                    base_url="https://api.groq.com/openai/v1",
+                    timeout=30.0,
+                    max_retries=2
+                )
+                alt_kwargs = {**kwargs}
+                if response_format == "json":
+                    alt_kwargs["response_format"] = {"type": "json_object"}
+                alt_resp = alt_client.chat.completions.create(**alt_kwargs)
+                return alt_resp.choices[0].message.content
+            except Exception as e2:
+                logger.warning(f"OpenAI fallback also failed: {e2}")
+                return None
+    else:
+        try:
+            if response_format == "json":
+                kwargs["response_format"] = {"type": "json_object"}
+            response = client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.warning(f"OpenAI/Groq call failed: {e}")
+            return None
 
 def ai_read_and_analyze(content: str, filename: str) -> list:
     if not content or len(content.strip()) < 10:
@@ -461,10 +559,10 @@ def ai_read_and_analyze(content: str, filename: str) -> list:
     if ext in doc_exts:
         return []
 
-    max_chars = 4000
+    max_chars = 6000
     truncated = content[:max_chars] if len(content) > max_chars else content
 
-    prompt = f"""You are a security code reviewer. Read this file and find ALL potential secrets — do NOT skip anything.
+    prompt = f"""You are a code analysis AI. Read this file carefully and find ALL security issues.
 
 File: {filename}
 Content:
@@ -472,72 +570,61 @@ Content:
 {truncated}
 ```
 
-Analyze and find:
-1. Hardcoded secrets (API keys, passwords, tokens, database credentials)
-2. Sensitive files or data exposure
-3. Security vulnerabilities
+Analyze the ACTUAL content. Determine if any detected values are:
+- **real**: Actual credential/secret/token that appears to be a real value
+- **example**: Placeholder, tutorial code, example values like "your_key", "changeme", "password123"
+- **template**: Config template using env vars like ${{VAR}}, process.env.VAR, os.getenv("VAR")
 
-For each finding, classify it:
-- **real**: An actual credential/secret that could cause damage if exposed
-- **example**: Example code, tutorial, placeholder, validation message
-- **template**: Config template where value is a variable reference like ${{var}}, process.env.VAR, os.getenv("VAR")
-
-Return ALL findings regardless of classification. Do NOT skip anything.
+CRITICAL: Look at the actual content. If values are clearly placeholders (your_key, changeme, example.com, 123456, etc.) mark as "example". Only mark as "real" if it looks like an actual deployed credential.
 
 Respond ONLY with JSON:
-{{"findings": [{{"type": "Password", "match": "first 20 chars", "line": 42, "severity": "high", "verdict": "real"}}]}}
+{{"findings": [{{"type": "API Key", "match": "first 20 chars", "line": 42, "severity": "high", "verdict": "real", "reason": "brief explanation"}}]}}
 If nothing found, return {{"findings": []}}"""
 
-    api_key = os.getenv("GROQ_API_KEY")
-    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
+    result = groq_chat(
+        messages=[{"role": "user", "content": prompt}],
+        response_format="json",
+        temperature=0.1
+    )
+    if result:
         try:
-            import openai
-            client = openai.OpenAI(
-                api_key=api_key,
-                base_url="https://api.groq.com/openai/v1",
-                timeout=20.0,
-                max_retries=1
-            )
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-                temperature=0.1,
-            )
-            result = json.loads(response.choices[0].message.content)
-            findings = result.get("findings", [])
+            data = json.loads(result)
+            findings = data.get("findings", [])
             for f in findings:
                 f.setdefault("file", filename)
                 f.setdefault("remediation", get_remediation(f.get("type", "")))
+                f.setdefault("_ai", True)
                 if "match" in f:
                     m = f["match"]
                     if len(m) > 24:
                         f["match"] = m[:20] + "****"
             return findings
-        except Exception as e:
-            logger.warning(f"Groq analysis failed for {filename}: {e}")
+        except json.JSONDecodeError:
+            logger.warning(f"AI response parse failed for {filename}")
+            return []
 
-    try:
-        import ollama
-        if OLLAMA_AVAILABLE:
+    if OLLAMA_AVAILABLE:
+        try:
+            import ollama
             response = ollama.chat(
                 model='llama3',
                 messages=[{'role': 'user', 'content': prompt}],
                 format='json',
                 options={"temperature": 0.1}
             )
-            result = json.loads(response['message']['content'])
-            findings = result.get("findings", [])
+            data = json.loads(response['message']['content'])
+            findings = data.get("findings", [])
             for f in findings:
                 f.setdefault("file", filename)
                 f.setdefault("remediation", get_remediation(f.get("type", "")))
+                f.setdefault("_ai", True)
                 if "match" in f:
                     m = f["match"]
                     if len(m) > 24:
                         f["match"] = m[:20] + "****"
             return findings
-    except Exception as e:
-        logger.warning(f"Ollama analysis failed for {filename}: {e}")
+        except Exception as e:
+            logger.warning(f"Ollama analysis failed for {filename}: {e}")
 
     return []
 
@@ -555,165 +642,95 @@ def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
         finding_type = f.get("type", "Unknown")
         match_val = f.get("match", "")[:30]
         file_path = f.get("_file", f.get("file", "?"))
-        line_num = f.get("line", "?")
-        findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{line_num}")
+        findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{f.get('line', '?')}")
     findings_text = "\n".join(findings_summary[:50])
 
-    prompt = f"""You are analyzing a GitHub repository for security issues. Look at the ENTIRE repo structure and all findings together to determine what's REAL vs FAKE/EXAMPLE.
+    prompt = f"""Review ALL findings from a GitHub repo scan. Identify what's REAL vs FAKE.
 
-REPO FILE TREE (shows what kind of project this is):
+REPO FILES:
 {tree_summary}
 
-ALL FINDINGS FROM SCAN:
+FINDINGS:
 {findings_text}
 
-Think holistically:
-1. What kind of project is this? (tutorial, demo, example, template, production app, library, etc.)
-2. If this is clearly a tutorial/demo/example project → MOST findings are likely EXAMPLE code
-3. If the repo has README mentioning "example", "demo", "tutorial", "sample" → it's educational
-4. Even in production repos, values that look like env var names (PASSWORD, TOKEN, SECRET) or obvious placeholders (your_password, changeme) are EXAMPLE
-5. REAL secrets look like actual keys/tokens that were accidentally committed (high-entropy, known formats, actual service credentials)
-6. KEY RULE: If a value looks like an environment variable reference (e.g., ${{ secrets.KEY }}, process.env.VAR, os.getenv("VAR")) it is NOT a real secret — it's a config template
+For each finding, decide:
+- "real" = actual credential that was accidentally committed (high-entropy keys, valid-looking tokens, real DB URLs)
+- "example" = placeholder, tutorial, demo, example code, env var names, obvious test values
+- "template" = config template using variable references like ${{}}, os.getenv, process.env
 
-Return ONLY JSON:
+Return JSON:
 {{"verdicts": [
-  {{"type": "Password", "match": "first 20 chars", "file": "path/to/file.py", "verdict": "example"}},
-  ...
-]}}
+  {{"type": "Password", "match": "xxx", "file": "path", "verdict": "example"}}
+]}}"""
 
-Set verdict to "real" ONLY if the value is:
-- A high-entropy random string in a production config file
-- A known API key format in a non-obvious-example context
-- A database URL with real-looking credentials
-- A private key in a production deployment config
-
-Set verdict to "example" if:
-- The project appears to be a tutorial, demo, template, or educational content
-- The value is a common placeholder, env var name, or dictionary word
-- The file is clearly example/documentation code
-- "your_", "changeme", "test", "example" patterns present
-- It's a variable reference like env_var, os.getenv, process.env"""
-
-    api_key = os.getenv("GROQ_API_KEY")
-    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
+    result = groq_chat(
+        messages=[{"role": "user", "content": prompt}],
+        response_format="json",
+        temperature=0.1
+    )
+    if result:
         try:
-            import openai
-            client = openai.OpenAI(
-                api_key=api_key,
-                base_url="https://api.groq.com/openai/v1",
-                timeout=20.0,
-                max_retries=1
-            )
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-                temperature=0.1,
-            )
-            result = json.loads(response.choices[0].message.content)
-            verdicts = result.get("verdicts", [])
+            data = json.loads(result)
+            verdicts = data.get("verdicts", [])
             real_ones = []
             for v in verdicts:
                 if v.get("verdict") == "real":
                     v["_file"] = v.pop("file", v.get("_file", ""))
                     real_ones.append(v)
-            if real_ones:
-                return real_ones
-            return []
-        except Exception as e:
-            logger.warning(f"Holistic review failed: {e}")
-
-    try:
-        import ollama
-        if OLLAMA_AVAILABLE:
-            response = ollama.chat(
-                model='llama3',
-                messages=[{'role': 'user', 'content': prompt}],
-                format='json',
-                options={"temperature": 0.1}
-            )
-            result = json.loads(response['message']['content'])
-            verdicts = result.get("verdicts", [])
-            real_ones = []
-            for v in verdicts:
-                if v.get("verdict") == "real":
-                    v["_file"] = v.pop("file", v.get("_file", ""))
-                    real_ones.append(v)
-            if real_ones:
-                return real_ones
-            return []
-    except Exception as e:
-        logger.warning(f"Ollama holistic review failed: {e}")
+            return real_ones
+        except json.JSONDecodeError:
+            pass
 
     return []
 
 def generate_ai_scan_report(scanned_files: list, summary: dict, file_tree: list) -> str:
-    issues_text = ""
-    issue_count = 0
+    real_issues_list = []
+    example_issues_list = []
     for sf in scanned_files:
         for iss in sf.get("issues", []):
-            if issue_count < 15:
-                issues_text += f"  - {iss['type']}: {iss['match'][:30]} in {sf['path']}:{iss.get('line', '?')}\n"
-                issue_count += 1
+            target = real_issues_list if iss.get("verdict") != "example" else example_issues_list
+            if len(target) < 10:
+                target.append(f"  - {iss['type']}: {iss['match'][:30]} in {sf['path']}:{iss.get('line', '?')} ({iss.get('severity','?')})")
 
     file_tree_text = "\n".join(file_tree[:30])
-    score = summary.get("score", 0)
-    secure = "SECURE" if score >= 80 else "ISSUES FOUND"
     total_files = summary.get("total_files", 0)
     issues_found = summary.get("issues_found", 0)
+    real_count = summary.get("real_issues", 0)
 
-    prompt = f"""You analyzed a GitHub repository. Generate a brief 2-3 sentence summary in Hindi/English mix explaining what you found.
+    prompt = f"""GitHub repo scan complete. Write 2-4 sentences in Hinglish explaining:
 
-Scan Results:
-- Status: {secure}
-- Security Score: {score}/100
-- Total Files: {total_files}
-- Issues Found: {issues_found}
-- Sensitive Files: {summary.get('sensitive_files_count', 0)}
+Total files: {total_files}
+Total issues: {issues_found}
+Real issues: {real_count}
 
-Key Files in Repo:
+Key files:
 {file_tree_text}
 
-Top Issues:
-{issues_text if issues_text else "  No real security issues found."}
+{"REAL ISSUES:" if real_issues_list else ""}
+{chr(10).join(real_issues_list) if real_issues_list else ""}
 
-Write a short report telling the user what this repo contains and whether there are real security issues. Use simple Hindi-English mix. 2-3 sentences max.
-If no real issues: say repo looks safe.
-If issues found: explain what type and how serious.
-Do NOT mention scores or technical details. Just plain explanation."""
+{"EXAMPLE/TEST ISSUES:" if example_issues_list else ""}
+{chr(10).join(example_issues_list) if example_issues_list else ""}
 
-    api_key = os.getenv("GROQ_API_KEY")
-    if api_key and len(api_key) > 10 and "YOUR" not in api_key:
-        try:
-            import openai
-            client = openai.OpenAI(
-                api_key=api_key,
-                base_url="https://api.groq.com/openai/v1",
-                timeout=15.0,
-                max_retries=1
-            )
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            logger.warning(f"AI report generation failed: {e}")
+Tell user: What type of repo is this? Are there any REAL security issues or just example values? Keep it simple Hinglish, 2-4 lines."""
 
-    try:
-        import ollama
-        if OLLAMA_AVAILABLE:
-            response = ollama.chat(
-                model='llama3',
-                messages=[{'role': 'user', 'content': prompt}],
-                options={"temperature": 0.3}
-            )
-            return response['message']['content'].strip()
-    except Exception as e:
-        logger.warning(f"Ollama report failed: {e}")
+    result = groq_chat(
+        messages=[{"role": "user", "content": prompt}],
+        response_format="text",
+        model="llama3-70b-8192",
+        temperature=0.3
+    )
+    if result:
+        return result.strip()
 
-    return ""
+    total = summary.get("total_files", 0)
+    real = summary.get("real_issues", 0)
+    found = summary.get("issues_found", 0)
+    if real > 0:
+        return f"Is repo mein {total} files scan hui. {real} real security issues aur {found - real} example issues mile. Real issues ko fix karein."
+    if found == 0:
+        return f"Is repo mein {total} files scan hui. Koi security issue nahi mila. Repo safe lag raha hai."
+    return f"Is repo mein {total} files scan hui. Sirf {found} example/placeholder issues mile, koi real issue nahi. Repo safe hai."
 
 def scan_github_repo(github_url: str):
     owner, repo = parse_github_url(github_url)
@@ -833,7 +850,6 @@ def scan_github_repo(github_url: str):
         all_findings = []
         seen_keys = set()
         combined = regex_findings + ai_findings
-        combined.sort(key=lambda x: 0 if x.get("_ai") else 1)
         for f in combined:
             key = (f.get("type", ""), f.get("match", ""), f.get("line"))
             if key not in seen_keys:
@@ -875,13 +891,18 @@ def scan_github_repo(github_url: str):
     scanned_files = file_infos
 
     issues_found = sum(len(sf["issues"]) for sf in scanned_files)
+    real_issues = sum(
+        1 for sf in scanned_files for iss in sf.get("issues", [])
+        if iss.get("verdict") != "example"
+    )
     sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
-    score = calculate_security_score(issues_found, len(scanned_files), sensitive_files)
+    score = calculate_security_score(real_issues, len(scanned_files), sensitive_files)
 
     ai_report = generate_ai_scan_report(scanned_files, {
         "total_files": len(scanned_files),
         "total_size_hr": format_size(total_size),
         "issues_found": issues_found,
+        "real_issues": real_issues,
         "sensitive_files_count": len(set(sensitive_files)),
         "score": score,
     }, [f["path"] for f in scanned_files[:50]])
@@ -899,10 +920,11 @@ def scan_github_repo(github_url: str):
         "total_size_bytes": total_size,
         "total_size_hr": format_size(total_size),
         "issues_found": issues_found,
+        "real_issues": real_issues,
         "sensitive_files_count": len(set(sensitive_files)),
         "large_files_count": len(large_files),
         "score": score,
-        "secure": score >= 80,
+        "secure": score >= 80 if real_issues == 0 else real_issues < 5,
     }
     if notes:
         summary["note"] = "; ".join(notes)
@@ -920,8 +942,8 @@ def calculate_security_score(issues: int, total_files: int, sensitive_files: lis
     if total_files == 0:
         return 100
     base = 100
-    base -= issues * 5
-    base -= len(set(sensitive_files)) * 3
+    base -= issues * 8
+    base -= len(set(sensitive_files)) * 5
     return max(0, min(100, base))
 
 def format_size(bytes_val: int):
