@@ -20,7 +20,7 @@ interface AgentAnalyticsCardProps {
 export function AgentAnalyticsCard({ theme = "dark" }: AgentAnalyticsCardProps) {
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const fetchStats = async () => {
     try {

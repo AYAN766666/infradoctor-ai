@@ -14,7 +14,7 @@ interface AgentActivityBadgeProps {
 export function AgentActivityBadge({ theme = "dark" }: AgentActivityBadgeProps) {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   useWebSocket({
     onAgentCount: (c) => {
