@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, LogIn, UserPlus, Clock, ArrowLeft, Activity } from "lucide-react";
+import { Users, UserPlus, Clock, ArrowLeft, Activity } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -73,17 +73,12 @@ export default function ActivityPage() {
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors",
                 theme === "light" ? "hover:bg-slate-50" : "hover:bg-white/5"
               )}>
-                <div className={cn(
-                  "w-9 h-9 rounded-lg flex items-center justify-center",
-                  e.action === "signed up"
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-indigo-500/10 text-indigo-400"
-                )}>
-                  {e.action === "signed up" ? <UserPlus size={16} /> : <LogIn size={16} />}
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-400">
+                  <UserPlus size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={cn("font-medium", theme === "light" ? "text-slate-700" : "text-white")}>{e.name}</p>
-                  <p className="text-xs text-neutral-500">{e.action === "signed up" ? "Signed up" : "Logged in"}</p>
+                  <p className="text-xs text-neutral-500">Signed up</p>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-neutral-500 shrink-0">
                   <Clock size={12} />

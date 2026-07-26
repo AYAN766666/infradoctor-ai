@@ -41,7 +41,6 @@ def login(request: Request, user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
     access_token = create_access_token(data={"sub": db_user.email})
-    login_tracker.record(db_user.name, "logged in")
     return {
         "access_token": access_token,
         "token_type": "bearer",
