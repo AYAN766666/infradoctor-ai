@@ -13,6 +13,11 @@ try:
 except ImportError:
     OLLAMA_AVAILABLE = False
 
+MAX_CONTENT_FETCH = 10000
+MAX_FILES_TO_SCAN = 10000
+MAX_WORKERS = 25
+SCAN_TIMEOUT = 180
+
 SENSITIVE_PATTERNS = [
     (r'(?i)\b(?:api[_-]?key|apikey)\s*[=:]\s*["\']?[\w\-]{16,}', "API Key"),
     (r'(?i)\b(?:secret[_-]?key)\s*[=:]\s*["\']?[\w\-]{16,}', "Secret Key"),
@@ -55,7 +60,7 @@ SENSITIVE_DIRECTORIES = [
     ".aws", ".gcp", ".azure", ".config/sops",
 ]
 
-LARGE_FILE_THRESHOLD = 500 * 1024
+LARGE_FILE_THRESHOLD = 2 * 1024 * 1024
 
 REMEDIATION_MAP = {
     "API Key": "Move to environment variables or a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault). Add the key file to .gitignore and rotate the exposed key immediately.",
@@ -656,10 +661,8 @@ def scan_github_repo(github_url: str):
     large_files = []
 
     content_fetched = 0
-    MAX_CONTENT_FETCH = 2000
-    MAX_FILES_TO_SCAN = 3000
-
     files_to_process = files[:MAX_FILES_TO_SCAN]
+    total_file_count = len(files_to_process)
 
     file_infos = []
     for file in files_to_process:
@@ -700,8 +703,7 @@ def scan_github_repo(github_url: str):
     fetch_candidates = [
         (i, file) for i, file in enumerate(files_to_process)
         if content_fetched < MAX_CONTENT_FETCH
-        and file.get("size", 0) < 5 * 1024 * 1024
-        and file.get("size", 0) <= LARGE_FILE_THRESHOLD
+        and file.get("size", 0) < 10 * 1024 * 1024
     ]
 
     def fetch_and_analyze(idx, file_entry):
@@ -724,19 +726,22 @@ def scan_github_repo(github_url: str):
                 all_findings.append(f)
         return idx, all_findings
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        future_map = {
-            executor.submit(fetch_and_analyze, idx, fe): idx
-            for idx, fe in fetch_candidates
-        }
-        for future in concurrent.futures.as_completed(future_map, timeout=55):
-            try:
-                idx, findings = future.result()
-                if findings:
-                    file_infos[idx]["issues"].extend(findings)
-                    sensitive_files.append(file_infos[idx]["path"])
-            except Exception as e:
-                logger.warning(f"Parallel fetch/analyze failed: {e}")
+    batch_size = 50
+    for batch_start in range(0, len(fetch_candidates), batch_size):
+        batch = fetch_candidates[batch_start:batch_start + batch_size]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_map = {
+                executor.submit(fetch_and_analyze, idx, fe): idx
+                for idx, fe in batch
+            }
+            for future in concurrent.futures.as_completed(future_map, timeout=SCAN_TIMEOUT):
+                try:
+                    idx, findings = future.result()
+                    if findings:
+                        file_infos[idx]["issues"].extend(findings)
+                        sensitive_files.append(file_infos[idx]["path"])
+                except Exception as e:
+                    logger.warning(f"Fetch/analyze failed: {e}")
 
     for fi in file_infos:
         fi["issue_count"] = len(fi["issues"])
@@ -766,6 +771,11 @@ def scan_github_repo(github_url: str):
         "score": score,
         "secure": score >= 80,
     }
+
+    if total_file_count > MAX_FILES_TO_SCAN:
+        summary["note"] = f"Repo has {total_file_count} files; scanned first {MAX_FILES_TO_SCAN}"
+    if len(files) > MAX_FILES_TO_SCAN:
+        summary["note"] = summary.get("note", "") + f" (total repo files: {len(files)})"
 
     return {
         "status": "completed",

@@ -50,8 +50,8 @@ if _import_error is None:
                         conn.execute(text(sql))
                 if "login_activity" in inspector.get_table_names():
                     with engine.begin() as conn:
-                        conn.execute(text("DELETE FROM login_activity"))
-                        logger.info("Cleared login_activity table")
+                        conn.execute(text("DELETE FROM login_activity WHERE created_at < datetime('now', '-30 days')"))
+                        logger.info("Cleaned old login_activity entries (kept last 30 days)")
         except Exception as e:
             logger.error(f"Migration: {e}")
     except Exception as e:
