@@ -7,6 +7,8 @@ interface UseWebSocketOptions {
   onMetrics?: (data: any) => void;
   onAlerts?: (data: any) => void;
   onProjects?: (data: any) => void;
+  onAgentCount?: (count: number) => void;
+  onAgentStats?: (data: any) => void;
   enabled?: boolean;
 }
 
@@ -38,6 +40,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             break;
           case "projects":
             options.onProjects?.(msg.data);
+            break;
+          case "agent_count":
+            options.onAgentCount?.(msg.count);
+            break;
+          case "agent_stats":
+            options.onAgentStats?.(msg.data);
             break;
         }
       },
