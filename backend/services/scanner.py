@@ -2,9 +2,12 @@ import re
 import json
 import os
 import fnmatch
+import time
 import requests
 import concurrent.futures
 from urllib.parse import urlparse
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from services.logger import logger
 
 try:
@@ -15,8 +18,20 @@ except ImportError:
 
 MAX_CONTENT_FETCH = 10000
 MAX_FILES_TO_SCAN = 10000
-MAX_WORKERS = 25
-SCAN_TIMEOUT = 180
+MAX_WORKERS = 30
+SCAN_TIMEOUT = 300
+
+_session = None
+
+def get_session():
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        retry = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+        adapter = HTTPAdapter(max_retries=retry, pool_connections=50, pool_maxsize=50)
+        _session.mount("https://", adapter)
+        _session.mount("http://", adapter)
+    return _session
 
 SENSITIVE_PATTERNS = [
     (r'(?i)\b(?:api[_-]?key|apikey)\s*[=:]\s*["\']?[\w\-]{16,}', "API Key"),
@@ -116,34 +131,120 @@ def fetch_repo_info(owner: str, repo: str):
         return None
 
 def fetch_repo_tree(owner: str, repo: str):
-    url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/master?recursive=1"
+    branches = ["master", "main"]
     headers = get_github_headers()
+    session = get_session()
+
+    for branch in branches:
+        tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
+        for attempt in range(3):
+            try:
+                resp = session.get(tree_url, headers=headers, timeout=120)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    truncated = data.get("truncated", False)
+                    items = [item for item in data.get("tree", []) if item["type"] == "blob"]
+                    if truncated:
+                        logger.warning(f"Tree truncated for {owner}/{repo} (too many files). Scanning {len(items)} files.")
+                    return items
+                if resp.status_code == 404:
+                    break
+                if resp.status_code in (429, 403):
+                    wait = 2 ** attempt * 2
+                    logger.warning(f"Rate limited fetching tree (attempt {attempt+1}), waiting {wait}s")
+                    time.sleep(wait)
+                    continue
+            except requests.Timeout:
+                logger.warning(f"Timeout fetching tree for {owner}/{repo} (attempt {attempt+1})")
+                if attempt < 2:
+                    time.sleep(2 ** attempt * 2)
+            except Exception as e:
+                logger.error(f"Failed to fetch repo tree: {e}")
+                break
+
+    logger.error(f"Could not fetch tree via GitHub API. Trying Contents API fallback for {owner}/{repo}")
     try:
-        resp = requests.get(url, headers=headers, timeout=30)
-        if resp.status_code == 404:
-            url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/main?recursive=1"
-            resp = requests.get(url, headers=headers, timeout=30)
-        if resp.status_code == 200:
-            data = resp.json()
-            return [item for item in data.get("tree", []) if item["type"] == "blob"]
-        return None
+        return fetch_repo_tree_contents_api(owner, repo)
     except Exception as e:
-        logger.error(f"Failed to fetch repo tree: {e}")
+        logger.error(f"Contents API fallback also failed: {e}")
         return None
 
+def fetch_repo_tree_contents_api(owner: str, repo: str):
+    session = get_session()
+    headers = get_github_headers()
+    default_branch = "master"
+
+    try:
+        repo_resp = session.get(
+            f"https://api.github.com/repos/{owner}/{repo}",
+            headers=headers, timeout=15
+        )
+        if repo_resp.status_code == 200:
+            default_branch = repo_resp.json().get("default_branch", "master")
+    except Exception:
+        pass
+
+    all_files = []
+    queue = [""]
+    max_items = MAX_FILES_TO_SCAN * 2
+    request_count = 0
+
+    while queue and len(all_files) < max_items:
+        current_path = queue.pop(0)
+        for attempt in range(3):
+            try:
+                api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{current_path}"
+                if current_path == "":
+                    api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/"
+                resp = session.get(api_url, headers=headers, timeout=30)
+                request_count += 1
+                if resp.status_code == 200:
+                    items = resp.json()
+                    if not isinstance(items, list):
+                        break
+                    for item in items:
+                        if item["type"] == "file":
+                            all_files.append({
+                                "path": item["path"],
+                                "size": item.get("size", 0),
+                            })
+                        elif item["type"] == "dir":
+                            queue.append(item["path"])
+                    break
+                elif resp.status_code in (429, 403):
+                    wait = 2 ** attempt * 3
+                    logger.warning(f"Rate limited on Contents API, waiting {wait}s")
+                    time.sleep(wait)
+                else:
+                    break
+            except Exception as e:
+                logger.warning(f"Contents API error at {current_path} (attempt {attempt+1}): {e}")
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+
+    logger.info(f"Contents API fallback found {len(all_files)} files for {owner}/{repo} ({request_count} requests)")
+    return all_files[:MAX_FILES_TO_SCAN]
+
 def fetch_file_content(owner: str, repo: str, path: str):
-    urls = [
-        f"https://raw.githubusercontent.com/{owner}/{repo}/master/{path}",
-        f"https://raw.githubusercontent.com/{owner}/{repo}/main/{path}",
-    ]
-    for url in urls:
-        try:
-            resp = requests.get(url, timeout=8)
-            if resp.status_code == 200:
-                return resp.text
-        except Exception:
-            continue
-    logger.error(f"Failed to fetch file {path} (both master/main)")
+    session = get_session()
+    branches = ["master", "main"]
+    for branch in branches:
+        url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
+        for attempt in range(3):
+            try:
+                resp = session.get(url, timeout=30)
+                if resp.status_code == 200:
+                    return resp.text
+                if resp.status_code == 404:
+                    break
+                if resp.status_code in (429, 403):
+                    time.sleep(2 ** attempt * 2)
+            except (requests.Timeout, requests.ConnectionError) as e:
+                logger.warning(f"Failed to fetch {path} from {branch} (attempt {attempt+1}): {e}")
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+            except Exception:
+                break
     return None
 
 def check_sensitive_filename(filename: str):
@@ -624,12 +725,20 @@ def scan_github_repo(github_url: str):
             "summary": {}
         }
 
+    logger.info(f"Starting scan for {owner}/{repo}")
     repo_size_bytes = fetch_repo_info(owner, repo)
-    files = fetch_repo_tree(owner, repo)
+
+    logger.info(f"Fetching file tree for {owner}/{repo}")
+    try:
+        files = fetch_repo_tree(owner, repo)
+    except Exception as e:
+        logger.error(f"Tree fetch exception for {owner}/{repo}: {e}")
+        files = None
+
     if files is None:
         return {
             "status": "error",
-            "error": "Could not fetch repository. Make sure it exists and is public. Check your GITHUB_TOKEN.",
+            "error": "Could not fetch repository tree. Make sure it exists, is public, and has a manageable size. Check your GITHUB_TOKEN.",
             "files": [],
             "summary": {}
         }
@@ -662,8 +771,7 @@ def scan_github_repo(github_url: str):
 
     content_fetched = 0
     files_to_process = files[:MAX_FILES_TO_SCAN]
-    total_file_count = len(files_to_process)
-
+    total_file_count = len(files)
     file_infos = []
     for file in files_to_process:
         path = file["path"]
@@ -702,17 +810,24 @@ def scan_github_repo(github_url: str):
 
     fetch_candidates = [
         (i, file) for i, file in enumerate(files_to_process)
-        if content_fetched < MAX_CONTENT_FETCH
-        and file.get("size", 0) < 10 * 1024 * 1024
+        if file.get("size", 0) < 10 * 1024 * 1024
     ]
 
     def fetch_and_analyze(idx, file_entry):
         path = file_entry["path"]
-        content = fetch_file_content(owner, repo, path)
+        try:
+            content = fetch_file_content(owner, repo, path)
+        except Exception as e:
+            logger.warning(f"Failed to fetch content for {path}: {e}")
+            return idx, []
         if not content:
             return idx, []
-        regex_findings = check_content_for_secrets(content, path)
-        ai_findings = ai_read_and_analyze(content, path)
+        try:
+            regex_findings = check_content_for_secrets(content, path)
+            ai_findings = ai_read_and_analyze(content, path)
+        except Exception as e:
+            logger.warning(f"Analysis failed for {path}: {e}")
+            return idx, []
         for f in ai_findings:
             f["_ai"] = True
         all_findings = []
@@ -726,31 +841,41 @@ def scan_github_repo(github_url: str):
                 all_findings.append(f)
         return idx, all_findings
 
-    batch_size = 50
+    processed = 0
+    skipped_errors = 0
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+    batch_size = min(100, max(10, len(fetch_candidates) // 10 + 1))
+    logger.info(f"Scanning {len(fetch_candidates)} files in batches of {batch_size} for {owner}/{repo}")
+
     for batch_start in range(0, len(fetch_candidates), batch_size):
         batch = fetch_candidates[batch_start:batch_start + batch_size]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_map = {
-                executor.submit(fetch_and_analyze, idx, fe): idx
-                for idx, fe in batch
-            }
-            for future in concurrent.futures.as_completed(future_map, timeout=SCAN_TIMEOUT):
-                try:
-                    idx, findings = future.result()
-                    if findings:
-                        file_infos[idx]["issues"].extend(findings)
-                        sensitive_files.append(file_infos[idx]["path"])
-                except Exception as e:
-                    logger.warning(f"Fetch/analyze failed: {e}")
+        future_map = {
+            executor.submit(fetch_and_analyze, idx, fe): idx
+            for idx, fe in batch
+        }
+        done, _ = concurrent.futures.wait(future_map, timeout=SCAN_TIMEOUT)
+        for future in done:
+            try:
+                idx, findings = future.result(timeout=5)
+                if findings:
+                    file_infos[idx]["issues"].extend(findings)
+                    sensitive_files.append(file_infos[idx]["path"])
+            except Exception as e:
+                skipped_errors += 1
+                logger.warning(f"File scan failed: {e}")
+        processed += len(batch)
+        if processed % 200 == 0:
+            logger.info(f"Progress: {processed}/{len(fetch_candidates)} files scanned for {owner}/{repo}")
+
+    executor.shutdown(wait=False)
 
     for fi in file_infos:
         fi["issue_count"] = len(fi["issues"])
-        issues_found += fi["issue_count"]
     scanned_files = file_infos
 
     issues_found = sum(len(sf["issues"]) for sf in scanned_files)
     sensitive_files = [sf["path"] for sf in scanned_files if sf["issues"]]
-
     score = calculate_security_score(issues_found, len(scanned_files), sensitive_files)
 
     ai_report = generate_ai_scan_report(scanned_files, {
@@ -760,6 +885,14 @@ def scan_github_repo(github_url: str):
         "sensitive_files_count": len(set(sensitive_files)),
         "score": score,
     }, [f["path"] for f in scanned_files[:50]])
+
+    notes = []
+    if total_file_count > MAX_FILES_TO_SCAN:
+        notes.append(f"Repo has {total_file_count} files; scanned first {MAX_FILES_TO_SCAN}")
+    elif total_file_count > 5000:
+        notes.append(f"Large repo: {total_file_count} files scanned")
+    if skipped_errors > 0:
+        notes.append(f"{skipped_errors} files could not be fetched due to errors")
 
     summary = {
         "total_files": len(scanned_files),
@@ -771,11 +904,8 @@ def scan_github_repo(github_url: str):
         "score": score,
         "secure": score >= 80,
     }
-
-    if total_file_count > MAX_FILES_TO_SCAN:
-        summary["note"] = f"Repo has {total_file_count} files; scanned first {MAX_FILES_TO_SCAN}"
-    if len(files) > MAX_FILES_TO_SCAN:
-        summary["note"] = summary.get("note", "") + f" (total repo files: {len(files)})"
+    if notes:
+        summary["note"] = "; ".join(notes)
 
     return {
         "status": "completed",
