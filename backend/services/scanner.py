@@ -592,21 +592,19 @@ def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
         findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{f.get('line', '?')}")
     findings_text = "\n".join(findings_summary[:60])
 
-    prompt = f"""You are an expert security reviewer. Review these findings from a GitHub repo scan. Your task is to determine if each finding is a REAL credential leak or just DEMO/EXAMPLE code.
+    prompt = f"""You are an expert security reviewer. Review these findings from a GitHub repo scan. For each finding, use your judgment to decide if it is a REAL credential leak or just demo/example code.
 
-Context — this is the repo's file structure:
+Context — the repo's file structure:
 {tree_summary}
 
-Findings found by the scanner:
+Findings found in the repo:
 {findings_text}
 
-Read each finding carefully. Think about the file path and the context. Decide:
-- "real" → This is an actual credential that was accidentally committed. A real API key, real password, real token that appears to be functional.
-- "example" → This is clearly demo code, tutorial example, placeholder text, or template. Values like "your_api_key_here", "changeme", "password123", or values in doc files.
+Look at each finding and think about the file path and what kind of file it is. Decide for each:
+- "real" = this is an actual credential that was committed (you are confident it is a real deployed credential)
+- "example" = this looks like demo code, tutorial example, placeholder text, test data, or a template
 
-IMPORTANT: Only mark as "real" if you are confident the value is an actual deployed credential. When in doubt, mark as "example".
-
-Return JSON:
+Use your own understanding. Return JSON:
 {{"verdicts": [{{"type": "GitHub Token", "match": "ghp_xxx", "file": "path/to/file", "verdict": "example"}}]}}"""
 
     result = groq_chat(
@@ -661,22 +659,21 @@ def generate_ai_scan_report(scanned_files: list, summary: dict, file_tree: list)
     issues_found = summary.get("issues_found", 0)
     real_count = summary.get("real_issues", 0)
 
-    prompt = f"""GitHub repo scan complete. Write 2-4 sentences in Hinglish explaining what this repo is and if there are real security issues.
+    prompt = f"""GitHub repo scan complete. Summarize the results in 2-4 sentences in Hinglish (Hindi+English mixed).
 
 Total files: {total_files}
-Total issues found: {issues_found}
+Total issues: {issues_found}
 Real issues: {real_count}
 
-Key files seen:
-{file_tree_text}
+Key files: {file_tree_text[:200]}
 
 {"REAL ISSUES:" if real_issues_list else ""}
 {chr(10).join(real_issues_list) if real_issues_list else ""}
 
-{"ONLY DEMO/EXAMPLE:" if example_issues_list else ""}
+{"OTHER FINDINGS:" if example_issues_list else ""}
 {chr(10).join(example_issues_list) if example_issues_list else ""}
 
-Explain: Is this a real project or demo code? Are values actual credentials or just placeholder text? Keep it simple Hinglish, 2-4 lines max."""
+Explain what kind of repo this is and whether there are any real security concerns. Be honest and natural."""
 
     result = groq_chat(
         messages=[{"role": "user", "content": prompt}],
