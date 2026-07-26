@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { AgentActivityBadge } from "@/components/ui/AgentActivityBadge";
 import { useState, useEffect, useRef } from "react";
 
 function FadeInView({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -80,11 +79,6 @@ export default function LandingPage() {
       .then(r => r.json())
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => {});
-    fetch(`${API_BASE}/ai/visit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page: "/" }),
-    }).catch(() => {});
   }, []);
 
   const fallbackReviews = [
@@ -412,7 +406,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-      <AgentActivityBadge theme={darkMode ? "dark" : "light"} />
     </div>
   );
 }

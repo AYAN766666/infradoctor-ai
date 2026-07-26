@@ -11,8 +11,6 @@ from models.infrastructure import Infrastructure
 from models.user import User
 from routes.deps import get_current_user
 from services.limiter import limiter
-from services.agent_tracker import agent_tracker
-from routes.ws import manager
 from urllib.parse import urlparse
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -31,10 +29,6 @@ async def ai_chat(request: Request, body: dict, db: Session = Depends(get_db), u
     project = db.query(Project).filter(Project.id == project_id, Project.user_id == user.id).first()
     if not project:
         raise HTTPException(404, "Project not found")
-
-    agent_tracker.record_chat(user.id)
-    stats = agent_tracker.get_stats()
-    await manager.broadcast_to_all({"type": "agent_count", "count": stats["active_users"]})
 
     scan = db.query(ScanResult).filter(ScanResult.project_id == project_id).order_by(ScanResult.id.desc()).first()
     context = f"Project: {project.name}\nGitHub: {project.github_url}\nEnvironment: {project.environment}\n"

@@ -5,6 +5,7 @@ from models.user import User
 from services.auth_service import get_password_hash, verify_password, create_access_token
 from services.limiter import limiter
 from routes.deps import get_current_user
+from services.login_tracker import login_tracker
 from pydantic import BaseModel, EmailStr
 
 router = APIRouter()
@@ -29,6 +30,7 @@ def register(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    login_tracker.record(user.name, "signed up")
     return {"message": "User created successfully", "user_id": db_user.id}
 
 @router.post("/login")
@@ -39,6 +41,7 @@ def login(request: Request, user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
     access_token = create_access_token(data={"sub": db_user.email})
+    login_tracker.record(db_user.name, "logged in")
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -50,3 +53,7 @@ def login(request: Request, user: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me")
 def get_me(user: User = Depends(get_current_user)):
     return {"id": user.id, "name": user.name, "email": user.email}
+
+@router.get("/activity")
+def get_login_activity(user: User = Depends(get_current_user)):
+    return login_tracker.get_recent(7)

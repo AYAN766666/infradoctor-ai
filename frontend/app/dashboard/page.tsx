@@ -33,8 +33,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgentActivityBadge } from "@/components/ui/AgentActivityBadge";
-import { AgentAnalyticsCard } from "@/components/ui/AgentAnalyticsCard";
+import { LoginActivityCard } from "@/components/ui/LoginActivityCard";
 
 // Types
 interface Project {
@@ -163,10 +162,8 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </>
       )}
 
-      {/* AI Agent Activity */}
-      <div className="mb-6">
-        <AgentAnalyticsCard theme={theme} />
-      </div>
+      {/* Login Activity */}
+      <LoginActivityCard theme={theme} />
 
       {/* Active Resources */}
       <motion.div
@@ -1584,13 +1581,6 @@ export default function DashboardPage() {
           <SidebarItem icon={<ShieldCheck size={20} />} label="Security" active={activeView === "Security"} onClick={() => { setActiveView("Security"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<MessageCircle size={20} />} label="Reviews" active={activeView === "Reviews"} onClick={() => { setActiveView("Reviews"); setMobileSidebarOpen(false); }} theme={theme} />
           <SidebarItem icon={<Settings size={20} />} label="Settings" active={activeView === "Settings"} onClick={() => { setActiveView("Settings"); setMobileSidebarOpen(false); }} theme={theme} />
-          <a href="/monitor" className={cn(
-            "w-full flex flex-row items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-colors duration-200",
-            theme === "light" ? "text-indigo-600 hover:bg-indigo-50" : "text-indigo-400 hover:bg-white/5"
-          )}>
-            <Activity size={20} />
-            Live Monitor
-          </a>
         </nav>
         {/* Close button on mobile */}
         <button onClick={() => setMobileSidebarOpen(false)} className="lg:hidden p-4 text-neutral-500 hover:text-white border-t border-white/5 flex items-center justify-center gap-2 text-sm transition-colors">
@@ -1973,8 +1963,6 @@ export default function DashboardPage() {
           </div>
         )}
       </AnimatePresence>
-
-      <AgentActivityBadge theme={theme} />
     </div>
   );
 }

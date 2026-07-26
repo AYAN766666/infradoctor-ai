@@ -1,11 +1,10 @@
 import asyncio
 import json
-from fastapi import WebSocket, WebSocketDisconnect, Query, APIRouter, Request
+from fastapi import WebSocket, WebSocketDisconnect, Query, APIRouter
 from sqlalchemy.orm import Session
 from db.db import SessionLocal, get_db
 from models.user import User
 from services.auth_service import decode_token
-from services.agent_tracker import agent_tracker
 
 router = APIRouter()
 
@@ -44,25 +43,6 @@ class ConnectionManager:
                     pass
 
 manager = ConnectionManager()
-
-
-@router.get("/ai/active")
-async def get_active_agent_count():
-    count = agent_tracker.get_active_count()
-    return {"active_users": count}
-
-
-@router.get("/ai/stats")
-async def get_agent_stats():
-    return agent_tracker.get_stats()
-
-
-@router.post("/ai/visit")
-async def record_visit(request: Request, body: dict = {}):
-    page = body.get("page", "/")
-    agent_tracker.record_visit(page)
-    stats = agent_tracker.get_stats()
-    return {"ok": True, "active_users": stats["active_users"], "today_chats": stats["today_chats"], "today_visitors": stats["today_visitors"]}
 
 
 @router.websocket("/ws")
