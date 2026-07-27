@@ -271,7 +271,7 @@ EXCLUDED_FUNCTIONS = [
 
 IMPORT_RE = re.compile(r'^\s*(import|from|require|include|export)\s')
 ENV_READ_RE = re.compile(r'(?:os\.environ|os\.getenv|process\.env|import\.meta\.env|Deno\.env)')
-TYPE_ANN_RE = re.compile(r':\s*(str|string|int|bool|float|bytes|SecretStr|SecretBytes)\s*(?:=|,|\)|$)'
+TYPE_ANN_RE = re.compile(r':\s*(str|string|int|bool|float|bytes|SecretStr|SecretBytes)\s*(?:=|,|\)|$)')
 
 FUNCTION_CALL_RE = re.compile(r'^[a-z_][a-z0-9_]*\(')
 IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
