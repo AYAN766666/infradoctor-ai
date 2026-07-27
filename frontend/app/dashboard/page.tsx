@@ -163,6 +163,25 @@ function OverviewView({ projects, alerts, setShowAddModal, deleteProject, metric
         </>
       )}
 
+      {/* AI Report Card */}
+      {activeScan?.ai_report && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn("mb-6 p-4 sm:p-5 rounded-2xl border", theme === "light" ? "bg-indigo-50/80 border-indigo-100" : "bg-indigo-500/5 border-indigo-500/20")}
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn("text-sm font-bold mb-1", theme === "light" ? "text-slate-800" : "text-white")}>AI Repo Analysis</p>
+              <p className={cn("text-sm leading-relaxed", theme === "light" ? "text-slate-600" : "text-neutral-300")}>{activeScan.ai_report}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Active Resources */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
