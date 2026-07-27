@@ -269,6 +269,10 @@ EXCLUDED_FUNCTIONS = [
     "socket.", "request.", "response.",
 ]
 
+IMPORT_RE = re.compile(r'^\s*(import|from|require|include|export)\s')
+ENV_READ_RE = re.compile(r'(?:os\.environ|os\.getenv|process\.env|import\.meta\.env|Deno\.env)')
+TYPE_ANN_RE = re.compile(r':\s*(str|string|int|bool|float|bytes|SecretStr|SecretBytes)\s*(?:=|,|\)|$)'
+
 FUNCTION_CALL_RE = re.compile(r'^[a-z_][a-z0-9_]*\(')
 IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 DIGIT_PATTERN_RE = re.compile(r'[0-9]')
@@ -378,6 +382,8 @@ def value_is_placeholder(value: str) -> bool:
         return True
     if "example" in clean and len(clean) < 25:
         return True
+    if any(kw in clean for kw in ["getenv", "process.env", "environ[", "import.meta"]):
+        return True
     return False
 
 def is_false_positive(match: str, label: str, line: str = "", filename: str = "", surrounding_context: str = "") -> bool:
@@ -399,6 +405,15 @@ def is_false_positive(match: str, label: str, line: str = "", filename: str = ""
     if doc_file and label in ("Password", "Auth Token", "Database Connection String"):
         return True
 
+    if IMPORT_RE.match(line_lower):
+        return True
+
+    if ENV_READ_RE.search(line_lower):
+        return True
+
+    if TYPE_ANN_RE.search(match_lower):
+        return True
+
     if re.match(r'\b(password|passwd|pwd|token|bearer)\s*:\s*(?:str|string|bytes|int|bool|float)', match_lower):
         return True
 
@@ -416,7 +431,7 @@ def is_false_positive(match: str, label: str, line: str = "", filename: str = ""
                     return True
                 if DIGIT_PATTERN_RE.search(clean_value) and sum(c.isdigit() for c in clean_value) <= 3 and alpha_ratio > 0.8:
                     return True
-            return False
+            return value_is_placeholder(value.strip("\"'`"))
         if any(kw in value.lower() for kw in EXCLUDED_FUNCTIONS):
             return True
         if FUNCTION_CALL_RE.match(value):
@@ -592,7 +607,7 @@ def ai_repo_holistic_review(all_findings: list, repo_file_tree: list) -> list:
         findings_summary.append(f"  - {finding_type}: {match_val} in {file_path}:{f.get('line', '?')}")
     findings_text = "\n".join(findings_summary[:60])
 
-    prompt = f"""You are an expert security reviewer. Review these findings from a GitHub repo scan. For each finding, use your judgment to decide if it is a REAL credential leak or just demo/example code.
+    prompt = f"""You are an expert security reviewer. Review these findings from a GitHub repo scan. Decide if each is a REAL credential leak or just demo/example/config code.
 
 Context — the repo's file structure:
 {tree_summary}
@@ -600,11 +615,22 @@ Context — the repo's file structure:
 Findings found in the repo:
 {findings_text}
 
-Look at each finding and think about the file path and what kind of file it is. Decide for each:
-- "real" = this is an actual credential that was committed (you are confident it is a real deployed credential)
-- "example" = this looks like demo code, tutorial example, placeholder text, test data, or a template
+Rules for "example" (NOT real):
+- Value contains "your_", "example", "sample", "demo", "test", "changeme", "xxxxx"
+- Value is a type annotation like "str", "string", "int" (TypeScript/Python type hints)
+- Value is an environment variable read like os.getenv, process.env, os.environ
+- Line is an import/require/include statement
+- File is .env.example, .env.sample, or in a docs/example folder
+- Value looks like a config key name, not an actual secret value
+- Value is shorter than 8 chars or all lowercase letters with no digits
 
-Use your own understanding. Return JSON:
+Rules for "real" (actual credential):
+- Value looks like a real API key format (e.g., sk-... with real chars, ghp_ with real hash)
+- The file is an actual .env or config file with seemingly real credentials
+- Multiple lines of actual secrets in a row (not just one isolated match)
+- Value is complex with mixed case, digits, special chars (not a simple word)
+
+Return JSON:
 {{"verdicts": [{{"type": "GitHub Token", "match": "ghp_xxx", "file": "path/to/file", "verdict": "example"}}]}}"""
 
     result = groq_chat(
