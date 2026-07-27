@@ -792,20 +792,20 @@ def scan_github_repo(github_url: str):
         }
 
         if check_sensitive_filename(path):
-            file_info["sensitive_name"] = True
             file_info["issues"].append({
                 "type": "Sensitive Filename",
                 "match": path,
-                "severity": "high",
+                "severity": "low",
+                "verdict": "info",
                 "remediation": get_remediation("Sensitive Filename"),
             })
-            sensitive_files.append(path)
 
         if size > LARGE_FILE_THRESHOLD:
             file_info["issues"].append({
                 "type": "Large File",
                 "match": f"{format_size(size)}",
-                "severity": "medium",
+                "severity": "low",
+                "verdict": "info",
                 "remediation": get_remediation("Large File"),
             })
             large_files.append({"path": path, "size": size})
@@ -903,24 +903,27 @@ def scan_github_repo(github_url: str):
                     elif ai_overrides[key] == "real":
                         iss["severity"] = "critical" if "key" in iss.get("type","").lower() or "token" in iss.get("type","").lower() else "high"
 
+    real_credential_types = {"API Key", "Secret Key", "Password", "Auth Token", "AWS Access Key",
+                           "AWS Secret Key", "GitHub Token", "GitHub OAuth Token", "Groq API Key",
+                           "OpenAI API Key", "Vercel Token", "Stripe Key", "Slack Token",
+                           "Private Key", "Database Connection String"}
+
     for sf in scanned_files:
-        real_issues_only = [iss for iss in sf.get("issues", []) if iss.get("verdict") not in ("example", "demo")]
+        real_issues_only = [iss for iss in sf.get("issues", []) if iss.get("verdict") not in ("example", "demo", "info")]
         sf["issues"] = real_issues_only
         sf["issue_count"] = len(real_issues_only)
-        sf["sensitive_name"] = len(real_issues_only) > 0
+        has_credential = any(iss.get("type") in real_credential_types for iss in real_issues_only)
+        sf["sensitive_name"] = has_credential
 
-    scanned_files = [sf for sf in scanned_files if sf.get("sensitive_name") or True]
-
-    real_issues = sum(
-        1 for sf in scanned_files for iss in sf.get("issues", [])
-        if iss.get("verdict") not in ("example", "demo")
-    )
-    issues_found = real_issues
     sensitive_files = list(set(
         sf["path"] for sf in scanned_files
         for iss in sf.get("issues", [])
-        if iss.get("verdict") not in ("example", "demo")
+        if iss.get("type") in real_credential_types
     ))
+
+    real_issues = sum(
+        len(sf["issues"]) for sf in scanned_files
+    )
     score = calculate_security_score(real_issues, len(scanned_files), sensitive_files)
 
     ai_report = generate_ai_scan_report(scanned_files, {
