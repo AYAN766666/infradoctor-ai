@@ -909,20 +909,21 @@ def scan_github_repo(github_url: str):
                            "Private Key", "Database Connection String"}
 
     for sf in scanned_files:
-        real_issues_only = [iss for iss in sf.get("issues", []) if iss.get("verdict") not in ("example", "demo", "info")]
-        sf["issues"] = real_issues_only
-        sf["issue_count"] = len(real_issues_only)
-        has_credential = any(iss.get("type") in real_credential_types for iss in real_issues_only)
+        sf["issue_count"] = len(sf.get("issues", []))
+        has_credential = any(
+            iss.get("type") in real_credential_types and iss.get("verdict") not in ("example", "demo")
+            for iss in sf.get("issues", [])
+        )
         sf["sensitive_name"] = has_credential
 
     sensitive_files = list(set(
         sf["path"] for sf in scanned_files
         for iss in sf.get("issues", [])
-        if iss.get("type") in real_credential_types
+        if iss.get("type") in real_credential_types and iss.get("verdict") not in ("example", "demo")
     ))
-
     real_issues = sum(
-        len(sf["issues"]) for sf in scanned_files
+        1 for sf in scanned_files for iss in sf.get("issues", [])
+        if iss.get("type") in real_credential_types and iss.get("verdict") not in ("example", "demo")
     )
     score = calculate_security_score(real_issues, len(scanned_files), sensitive_files)
 
