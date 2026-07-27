@@ -881,14 +881,20 @@ def scan_github_repo(github_url: str):
         1 for sf in scanned_files for iss in sf.get("issues", [])
         if iss.get("verdict") not in ("example", "demo")
     )
+    issues_found = real_issues
+    sensitive_files = list(set(
+        sf["path"] for sf in scanned_files
+        for iss in sf.get("issues", [])
+        if iss.get("verdict") not in ("example", "demo")
+    ))
     score = calculate_security_score(real_issues, len(scanned_files), sensitive_files)
 
     ai_report = generate_ai_scan_report(scanned_files, {
         "total_files": len(scanned_files),
         "total_size_hr": format_size(total_size),
-        "issues_found": issues_found,
+        "issues_found": real_issues,
         "real_issues": real_issues,
-        "sensitive_files_count": len(set(sensitive_files)),
+        "sensitive_files_count": len(sensitive_files),
         "score": score,
     }, [f["path"] for f in scanned_files[:50]])
 
