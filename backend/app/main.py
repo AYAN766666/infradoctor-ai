@@ -106,7 +106,7 @@ async def root():
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail or "An error occurred"})
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail or "An error occurred"})
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

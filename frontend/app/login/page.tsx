@@ -50,7 +50,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       } else {
         const data = await res.json();
-        setError(data.detail || "Invalid email or password.");
+        setError(data.detail || data.error || "Invalid email or password.");
       }
     } catch (err) {
       setError("Network error. Make sure the backend is running.");

@@ -46,7 +46,7 @@ export default function RegisterPage() {
         router.push("/login");
       } else {
         const data = await res.json();
-        setError(data.detail || "Registration failed. Please try again.");
+        setError(data.detail || data.error || "Registration failed. Please try again.");
       }
     } catch (err) {
       setError("Network error. Make sure the backend is running.");
