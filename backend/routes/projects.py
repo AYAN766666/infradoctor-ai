@@ -21,7 +21,7 @@ from models.user import User
 from services.scanner import scan_github_repo
 from urllib.parse import urlparse
 from services.limiter import limiter
-from services.broadcast import broadcast_projects, broadcast_metrics
+from services.broadcast import broadcast_projects, broadcast_metrics, broadcast_scan_update
 from routes.deps import get_current_user
 from pydantic import BaseModel
 from typing import Optional
@@ -293,6 +293,7 @@ def trigger_scan(request: Request, project_id: int, db: Session = Depends(get_db
         loop = asyncio.get_event_loop()
         loop.create_task(broadcast_projects(user.id))
         loop.create_task(broadcast_metrics(user.id))
+        loop.create_task(broadcast_scan_update(user.id, project_id, scan_result))
     except Exception:
         pass
 

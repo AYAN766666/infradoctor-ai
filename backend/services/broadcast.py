@@ -76,6 +76,7 @@ async def broadcast_projects(user_id: int):
                     bytes_val /= 1024
                 else:
                     size_hr = f"{bytes_val:.1f} TB"
+                report_data = json.loads(latest_scan.report_data) if latest_scan.report_data else {}
                 scan_info = {
                     "id": latest_scan.id,
                     "status": latest_scan.status,
@@ -83,6 +84,7 @@ async def broadcast_projects(user_id: int):
                     "issues_found": latest_scan.issues_found,
                     "total_files": latest_scan.total_files,
                     "total_size_hr": size_hr,
+                    "ai_report": report_data.get("ai_report", ""),
                 }
             result.append({
                 "id": p.id,
@@ -99,3 +101,17 @@ async def broadcast_projects(user_id: int):
         })
     finally:
         db.close()
+
+
+async def broadcast_scan_update(user_id: int, project_id: int, scan_result: dict):
+    await manager.broadcast_to_user(user_id, {
+        "type": "scan_update",
+        "project_id": project_id,
+        "data": {
+            "status": scan_result.get("status"),
+            "score": scan_result.get("summary", {}).get("score", 0),
+            "issues_found": scan_result.get("summary", {}).get("issues_found", 0),
+            "total_files": scan_result.get("summary", {}).get("total_files", 0),
+            "ai_report": scan_result.get("ai_report", ""),
+        }
+    })

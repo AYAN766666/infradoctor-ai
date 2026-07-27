@@ -27,7 +27,7 @@ export class WsClient {
 
   connect() {
     if (this.ws?.readyState === WebSocket.OPEN) return;
-    const fullUrl = `${this.config.url}?token=${this.config.token}`;
+    const fullUrl = `${this.config.url}/ws?token=${this.config.token}`;
     this.ws = new WebSocket(fullUrl);
 
     this.ws.onopen = () => {

@@ -903,6 +903,14 @@ def scan_github_repo(github_url: str):
                     elif ai_overrides[key] == "real":
                         iss["severity"] = "critical" if "key" in iss.get("type","").lower() or "token" in iss.get("type","").lower() else "high"
 
+    for sf in scanned_files:
+        real_issues_only = [iss for iss in sf.get("issues", []) if iss.get("verdict") not in ("example", "demo")]
+        sf["issues"] = real_issues_only
+        sf["issue_count"] = len(real_issues_only)
+        sf["sensitive_name"] = len(real_issues_only) > 0
+
+    scanned_files = [sf for sf in scanned_files if sf.get("sensitive_name") or True]
+
     real_issues = sum(
         1 for sf in scanned_files for iss in sf.get("issues", [])
         if iss.get("verdict") not in ("example", "demo")
